@@ -64,14 +64,14 @@ body {
   height: auto;
 }
 
-/* Grid layout — matches logo width */
+/* Grid layout — matches logo width, pushed to bottom */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5vh 3rem;
   width: min(85vw, 700px);
   flex: 1;
-  align-content: start;
+  align-content: end;
 }
 
 /* Panels */
@@ -94,6 +94,7 @@ body {
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 300;
+  text-transform: uppercase;
 }
 
 /* Concert list */
@@ -118,6 +119,7 @@ body {
 .concert-list span {
   color: rgba(255, 255, 255, 0.7);
   font-weight: 300;
+  text-transform: uppercase;
 }
 
 /* Link list */
@@ -132,6 +134,7 @@ body {
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 300;
+  text-transform: uppercase;
   transition: color 0.3s ease;
   pointer-events: auto;
 }

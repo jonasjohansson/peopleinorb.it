@@ -472,13 +472,7 @@ loader.load(
       scene.add(wrapper);
       figures.push({ mesh: wrapper, inner: clone, pivot, config, isFallback: false });
 
-      if (animations.length > 0) {
-        const mixer = new THREE.AnimationMixer(clone);
-        const action = mixer.clipAction(animations[0]);
-        action.play();
-        action.time = config.animOffset;
-        mixers.push(mixer);
-      }
+      // Static pose only — no animation playback
     });
   },
   (progress) => {
@@ -505,7 +499,7 @@ function animate() {
   const delta = clock.getDelta();
   const time = clock.getElapsedTime();
 
-  mixers.forEach((m) => m.update(delta));
+  // No animation mixer updates — static poses
 
   // Track orbit center to the O in the logo
   updateOrbitCenter();
