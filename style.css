@@ -1,206 +1,353 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
-
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Tweakpane on top of everything */
-.tp-dfwv {
-  z-index: 100 !important;
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a0a;
+  font-family: system-ui, sans-serif;
 }
 
-html, body {
-  height: 100%;
+/* Scene container */
+.scene {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
 
-body {
-  background: #000;
-  color: #fff;
-  font-family: "Space Grotesk", system-ui, sans-serif;
-}
-
-/* Canvas background */
-#orb-canvas {
-  position: fixed;
+/* Background image — covers viewport, cropped as needed */
+.bg-image {
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
   z-index: 0;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-/* Content overlay */
-.content-overlay {
-  position: relative;
+/* Dusk image — layered on top, fades in/out */
+.bg-image--dusk {
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.bg-image--dusk.active {
+  opacity: 1;
+}
+
+/* Post-processing canvas overlay */
+.fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 1;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1.5vh 1rem;
   pointer-events: none;
 }
 
-.content-overlay a,
-.content-overlay button {
-  pointer-events: auto;
+/* Tweakpane in top-right corner */
+.tp-dfwv {
+  z-index: 200 !important;
 }
 
-/* Header + Logo */
-.band-header {
-  text-align: center;
-  padding: 1vh 0;
-  width: 100%;
+
+/* Hotspot layer — matches rendered image size/position exactly */
+.hotspot-layer {
+  position: absolute;
+  z-index: 5;
+  /* Sized and positioned by JS to match the image */
+}
+
+/* Draggable corner anchors (edit mode) */
+.anchor-dot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.1s ease;
+}
+
+.anchor-dot:hover {
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+/* Hotspot base */
+.hotspot {
+  position: absolute;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
   display: flex;
+  align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
-.logo {
-  width: min(85vw, 700px);
-  height: auto;
+.hotspot:hover {
+  transform: scale(1.03);
 }
 
-/* Grid layout — matches logo width, pushed to bottom */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5vh 3rem;
-  width: min(85vw, 700px);
-  flex: 1;
-  align-content: end;
+.hotspot-icon {
+  opacity: 0;
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8));
+  transition: opacity 0.3s ease;
+  color: #fff;
 }
 
-/* Panels */
-.panel {
-  padding: 0.5vh 0;
+.hotspot:hover .hotspot-icon {
+  opacity: 1;
 }
 
-.panel h2 {
-  font-family: "Space Mono", monospace;
-  font-size: 0.65rem;
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.25em;
-  color: rgba(255, 255, 255, 0.4);
-  margin-bottom: 0.6rem;
+/* --- Hotspot styles (positions set by JS) --- */
+
+/* Turntable */
+.hotspot--turntable {
 }
 
-.panel p {
-  font-size: 0.8rem;
-  line-height: 1.7;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 300;
-  text-transform: uppercase;
+.hotspot--turntable::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Concert list */
-.concert-list {
-  list-style: none;
+.hotspot--turntable:hover::after {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
 }
 
-.concert-list li {
-  display: flex;
-  gap: 1rem;
-  padding: 0.3rem 0;
-  font-size: 0.8rem;
+.hotspot--turntable.playing::after {
+  border-color: rgba(255, 100, 100, 0.4);
+  box-shadow: inset 0 0 20px rgba(255, 100, 100, 0.1);
 }
 
-.concert-list time {
-  font-family: "Space Mono", monospace;
-  color: rgba(255, 255, 255, 0.4);
+/* Blue vinyl record */
+.hotspot--vinyl {
+}
+
+.hotspot--vinyl::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hotspot--vinyl:hover::after {
+  border-color: rgba(100, 100, 255, 0.5);
+  box-shadow: 0 0 20px rgba(100, 100, 255, 0.2);
+}
+
+/* TV — the LG monitor screen (positioned by JS) */
+.hotspot--tv {
+}
+
+.hotspot--tv::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.hotspot--tv:hover::after {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* TV screen — static/video fills the TV screen area (positioned by JS) */
+.tv-screen {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+.tv-static {
+  position: absolute;
+  inset: 0;
+}
+
+.tv-static canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Lamp */
+.hotspot--lamp {
+  border-radius: 50%;
+}
+
+.hotspot--lamp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.hotspot--lamp:hover::after {
+  border-color: rgba(255, 200, 100, 0.3);
+}
+
+/* Speakers */
+.speaker {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.speaker--left {
+}
+
+.speaker--right {
+}
+
+.speaker.pulsing {
+  opacity: 1;
+  animation: speakerPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes speakerPulse {
+  0% {
+    box-shadow: 0 0 10px 2px rgba(255, 180, 100, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 25px 8px rgba(255, 180, 100, 0.3);
+  }
+}
+
+/* Music notes floating up from turntable */
+.music-notes {
+  position: absolute;
+  left: 46%;
+  top: 35%;
+  width: 15%;
+  height: 15%;
+  pointer-events: none;
+}
+
+.music-note {
+  position: absolute;
+  bottom: 0;
+  font-size: 1.2rem;
+  opacity: 0;
+  animation: floatNote 2.5s ease-out forwards;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
+}
+
+@keyframes floatNote {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) translateX(var(--drift)) scale(0.6) rotate(var(--rotate));
+  }
+}
+
+/* Book easter egg */
+.hotspot--book {
+  left: 12%;
+  top: 18%;
+  width: 4%;
+  height: 8%;
+  cursor: default;
+}
+
+.hotspot--book .tooltip {
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
   font-size: 0.75rem;
   white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 
-.concert-list span {
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 300;
-  text-transform: uppercase;
+.hotspot--book:hover .tooltip {
+  opacity: 1;
 }
 
-/* Link list */
-.link-list {
+/* Spotify floating player */
+.spotify-player {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.spotify-player.visible {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.spotify-player iframe {
+  border-radius: 8px;
+  display: block;
+}
+
+.spotify-close {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #333;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
 }
 
-.link-list a {
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  font-size: 0.8rem;
-  font-weight: 300;
-  text-transform: uppercase;
-  transition: color 0.3s ease;
-  pointer-events: auto;
-}
-
-.link-list a:hover {
-  color: #fff;
-}
-
-/* Buttons */
-.btn {
-  display: inline-block;
-  margin-top: 0.5rem;
-  padding: 0.35rem 0.9rem;
-  font-size: 0.75rem;
-  font-family: "Space Mono", monospace;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.6);
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  transition: all 0.3s ease;
-  pointer-events: auto;
-}
-
-.btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-/* Email link */
-.email {
-  display: inline-block;
-  margin-top: 0.3rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-decoration: none;
-  font-family: "Space Mono", monospace;
-  font-size: 0.8rem;
-  pointer-events: auto;
-  transition: color 0.3s ease;
-}
-
-.email:hover {
-  color: #fff;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .content-overlay {
-    padding: 1.5rem 1rem;
-  }
-
-  .band-header {
-    margin-bottom: 1rem;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.spotify-close:hover {
+  background: #555;
 }

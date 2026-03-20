@@ -1,592 +1,570 @@
-import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { Pane } from "tweakpane";
+import { Pane } from "https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js";
 
-// --- Tweakpane params ---
-const params = {
-  pivotX: Math.PI,
-  pivotY: -Math.PI,
-  pivotZ: -Math.PI,
-  scale: 1.5,
-  speed: 1,
-  outlineThickness: 0.03,
-  // Orb
-  orbVisible: true,
-  orbScale: 0.6,
-  orbOpacity: 1.0,
-  orbEmissive: 2.0,
-  orbRing: false,
-  orbGlow: true,
-  // Colors
-  bgColor: "#000000",
-  figureColor: "#e8e4e0",
-  outlineColor: "#000000",
-  orbColor: "#ffffff",
-  logoNoCircle: true,
-  // Post-processing
-  bloomStrength: 0.4,
-  bloomRadius: 0.8,
-  bloomThreshold: 0.6,
-  grainIntensity: 0.03,
-  vignetteIntensity: 0.4,
-  spotRadius: 8,
-  spotIntensity: 1.5,
+// --- Constants ---
+const IMG_W = 8192;
+const IMG_H = 5464;
+const IMG_RATIO = IMG_W / IMG_H;
+
+const SPOTIFY_EMBED_URL =
+  "https://open.spotify.com/embed/artist/39Hqg9HOVrra5TX0mdsj4N?utm_source=generator&theme=0";
+
+// --- State ---
+let isPlaying = false;
+let isDark = false;
+let noteInterval = null;
+let mouseX = 0.5;
+let mouseY = 0.5;
+let targetMouseX = 0.5;
+let targetMouseY = 0.5;
+
+// --- Elements ---
+const bgImage = document.getElementById("bgImage");
+const bgImageDusk = document.getElementById("bgImageDusk");
+const hotspotLayer = document.getElementById("hotspotLayer");
+const fxCanvas = document.getElementById("fxCanvas");
+const turntableBtn = document.getElementById("turntableBtn");
+const musicNotes = document.getElementById("musicNotes");
+const tvBtn = document.getElementById("tvBtn");
+const tvStatic = document.getElementById("tvStatic");
+const staticCanvas = document.getElementById("staticCanvas");
+const lampBtn = document.getElementById("lampBtn");
+const speakerLeft = document.getElementById("speakerLeft");
+const speakerRight = document.getElementById("speakerRight");
+const spotifyPlayer = document.getElementById("spotifyPlayer");
+const spotifyFrame = document.getElementById("spotifyFrame");
+const spotifyClose = document.getElementById("spotifyClose");
+const tvScreen = document.getElementById("tvScreen");
+
+// --- FX Parameters ---
+const fx = {
+  vignette: 0.4,
+  vignetteSize: 0.45,
+  tintR: 1.0,
+  tintG: 0.95,
+  tintB: 0.9,
+  grain: 0.08,
+  brightness: 1.0,
+  contrast: 1.0,
+  saturation: 1.0,
+  depthLightIntensity: 0.3,
+  depthLightRadius: 0.4,
+  depthScale: 1.5,
+  ambientLight: 0.15,
 };
 
-const pane = new Pane({ title: "Settings" });
-const rotFolder = pane.addFolder({ title: "Pivot Rotation" });
-rotFolder.addBinding(params, "pivotX", { min: -Math.PI, max: Math.PI, step: 0.01, label: "X" });
-rotFolder.addBinding(params, "pivotY", { min: -Math.PI, max: Math.PI, step: 0.01, label: "Y" });
-rotFolder.addBinding(params, "pivotZ", { min: -Math.PI, max: Math.PI, step: 0.01, label: "Z" });
-pane.addBinding(params, "scale", { min: 0.2, max: 5, step: 0.1, label: "Scale" });
-pane.addBinding(params, "speed", { min: 0, max: 3, step: 0.1, label: "Speed" });
-pane.addBinding(params, "outlineThickness", { min: 0, max: 0.1, step: 0.005, label: "Outline" });
+// ============================================================
+// Hotspot Regions (% of image) — editable via corner anchors
+// ============================================================
+const hotspots = {
+  tv:        { left: 14.7, top: 67.7, width: 28.0, height: 23.5, color: "#00ff00", el: null, screenEl: tvScreen },
+  turntable: { left: 48.0, top: 64.0, width: 18.1, height: 6.2,  color: "#ff4444", el: turntableBtn },
+  vinyl:     { left: 72.4, top: 51.8, width: 12.2, height: 14.5, color: "#4444ff", el: document.getElementById("vinylBtn") },
+  lamp:      { left: 73.7, top: 29.5, width: 10.8, height: 15.5, color: "#ffaa00", el: lampBtn },
+  speakerL:  { left: 47.7, top: 76.5, width: 7.3,  height: 18.1, color: "#ff66ff", el: speakerLeft },
+  speakerR:  { left: 63.4, top: 76.1, width: 7.6,  height: 18.4, color: "#66ffff", el: speakerRight },
+};
 
-const orbFolder = pane.addFolder({ title: "Orb" });
-orbFolder.addBinding(params, "orbVisible", { label: "Visible" });
-orbFolder.addBinding(params, "orbScale", { min: 0.1, max: 5, step: 0.1, label: "Size" });
-orbFolder.addBinding(params, "orbOpacity", { min: 0, max: 1, step: 0.05, label: "Opacity" });
-orbFolder.addBinding(params, "orbEmissive", { min: 0, max: 2, step: 0.05, label: "Emissive" });
-orbFolder.addBinding(params, "orbRing", { label: "Ring" });
-orbFolder.addBinding(params, "orbGlow", { label: "Glow" });
+function syncHotspot(name) {
+  const h = hotspots[name];
+  if (h.el) {
+    h.el.style.left = h.left + "%";
+    h.el.style.top = h.top + "%";
+    h.el.style.width = h.width + "%";
+    h.el.style.height = h.height + "%";
+  }
+  if (h.screenEl) {
+    h.screenEl.style.left = h.left + "%";
+    h.screenEl.style.top = h.top + "%";
+    h.screenEl.style.width = h.width + "%";
+    h.screenEl.style.height = h.height + "%";
+  }
+  // Also sync the TV clickable area to match the screen
+  if (name === "tv") {
+    tvBtn.style.left = h.left + "%";
+    tvBtn.style.top = h.top + "%";
+    tvBtn.style.width = h.width + "%";
+    tvBtn.style.height = h.height + "%";
+  }
+}
 
-const colorFolder = pane.addFolder({ title: "Colors" });
-colorFolder.addBinding(params, "bgColor", { label: "Background" });
-colorFolder.addBinding(params, "figureColor", { label: "Figures" });
-colorFolder.addBinding(params, "outlineColor", { label: "Outline" });
-colorFolder.addBinding(params, "orbColor", { label: "Orb" });
-colorFolder.addBinding(params, "logoNoCircle", { label: "Logo no O" });
+// Initial sync
+Object.keys(hotspots).forEach(syncHotspot);
 
-const fxFolder = pane.addFolder({ title: "Post-Processing" });
-fxFolder.addBinding(params, "bloomStrength", { min: 0, max: 2, step: 0.05, label: "Bloom" });
-fxFolder.addBinding(params, "bloomRadius", { min: 0, max: 2, step: 0.05, label: "Bloom Rad" });
-fxFolder.addBinding(params, "bloomThreshold", { min: 0, max: 1, step: 0.05, label: "Bloom Thr" });
-fxFolder.addBinding(params, "grainIntensity", { min: 0, max: 0.3, step: 0.01, label: "Grain" });
-fxFolder.addBinding(params, "vignetteIntensity", { min: 0, max: 1, step: 0.05, label: "Vignette" });
-fxFolder.addBinding(params, "spotRadius", { min: 2, max: 20, step: 0.5, label: "Spot Size" });
-fxFolder.addBinding(params, "spotIntensity", { min: 0, max: 3, step: 0.1, label: "Spot Int" });
+// ============================================================
+// Draggable Corner Anchors
+// ============================================================
+let editMode = false;
+const anchors = []; // all anchor elements
 
-// --- Scene setup ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+function createAnchors() {
+  // Remove existing
+  anchors.forEach((a) => a.remove());
+  anchors.length = 0;
 
-const camera = new THREE.OrthographicCamera();
-const renderer = new THREE.WebGLRenderer({
-  canvas: document.getElementById("orb-canvas"),
-  antialias: true,
+  if (!editMode) return;
+
+  Object.entries(hotspots).forEach(([name, h]) => {
+    // 4 corners: TL, TR, BL, BR
+    const corners = [
+      { cx: "left", cy: "top", cursor: "nw-resize" },
+      { cx: "right", cy: "top", cursor: "ne-resize" },
+      { cx: "left", cy: "bottom", cursor: "sw-resize" },
+      { cx: "right", cy: "bottom", cursor: "se-resize" },
+    ];
+
+    corners.forEach((corner) => {
+      const dot = document.createElement("div");
+      dot.className = "anchor-dot";
+      dot.style.background = h.color;
+      dot.style.borderColor = h.color;
+      dot.dataset.hotspot = name;
+      dot.dataset.cx = corner.cx;
+      dot.dataset.cy = corner.cy;
+      dot.style.cursor = corner.cursor;
+      hotspotLayer.appendChild(dot);
+      anchors.push(dot);
+
+      positionAnchor(dot, name, corner.cx, corner.cy);
+
+      // Drag logic
+      let dragging = false;
+
+      dot.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragging = true;
+
+        const onMove = (e2) => {
+          if (!dragging) return;
+          const layerRect = hotspotLayer.getBoundingClientRect();
+          const pctX = ((e2.clientX - layerRect.left) / layerRect.width) * 100;
+          const pctY = ((e2.clientY - layerRect.top) / layerRect.height) * 100;
+
+          if (corner.cx === "left") {
+            const right = h.left + h.width;
+            h.left = Math.max(0, Math.min(pctX, right - 1));
+            h.width = right - h.left;
+          } else {
+            h.width = Math.max(1, pctX - h.left);
+          }
+
+          if (corner.cy === "top") {
+            const bottom = h.top + h.height;
+            h.top = Math.max(0, Math.min(pctY, bottom - 1));
+            h.height = bottom - h.top;
+          } else {
+            h.height = Math.max(1, pctY - h.top);
+          }
+
+          syncHotspot(name);
+          updateAllAnchors(name);
+          // Update Tweakpane
+          pane.refresh();
+        };
+
+        const onUp = () => {
+          dragging = false;
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseup", onUp);
+          console.log(`${name}:`, JSON.stringify({ left: +h.left.toFixed(1), top: +h.top.toFixed(1), width: +h.width.toFixed(1), height: +h.height.toFixed(1) }));
+        };
+
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+      });
+    });
+  });
+}
+
+function positionAnchor(dot, name, cx, cy) {
+  const h = hotspots[name];
+  const x = cx === "left" ? h.left : h.left + h.width;
+  const y = cy === "top" ? h.top : h.top + h.height;
+  dot.style.left = x + "%";
+  dot.style.top = y + "%";
+}
+
+function updateAllAnchors(name) {
+  anchors
+    .filter((a) => a.dataset.hotspot === name)
+    .forEach((a) => positionAnchor(a, a.dataset.hotspot, a.dataset.cx, a.dataset.cy));
+}
+
+// ============================================================
+// Image Bounds (object-fit: cover)
+// ============================================================
+function getImageBounds() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const viewRatio = vw / vh;
+  let renderedW, renderedH, offsetX, offsetY;
+
+  if (viewRatio > IMG_RATIO) {
+    renderedW = vw;
+    renderedH = vw / IMG_RATIO;
+  } else {
+    renderedH = vh;
+    renderedW = vh * IMG_RATIO;
+  }
+
+  offsetX = (vw - renderedW) / 2;
+  offsetY = (vh - renderedH) / 2;
+  return { renderedW, renderedH, offsetX, offsetY };
+}
+
+function syncHotspotLayer() {
+  const { renderedW, renderedH, offsetX, offsetY } = getImageBounds();
+  hotspotLayer.style.width = renderedW + "px";
+  hotspotLayer.style.height = renderedH + "px";
+  hotspotLayer.style.left = offsetX + "px";
+  hotspotLayer.style.top = offsetY + "px";
+}
+
+syncHotspotLayer();
+window.addEventListener("resize", () => {
+  syncHotspotLayer();
+  resizeGL();
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
 
-// --- Post-processing ---
-const composer = new EffectComposer(renderer);
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
+// --- Mouse tracking (smooth) ---
+window.addEventListener("mousemove", (e) => {
+  targetMouseX = e.clientX / window.innerWidth;
+  targetMouseY = e.clientY / window.innerHeight;
+});
 
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  params.bloomStrength,
-  params.bloomRadius,
-  params.bloomThreshold
-);
-composer.addPass(bloomPass);
+// ============================================================
+// WebGL Post-Processing with Depth Map
+// ============================================================
+const gl = fxCanvas.getContext("webgl", { alpha: true, premultipliedAlpha: false });
 
-// Film grain + vignette + spotlight shader
-const grainVignetteShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    uTime: { value: 0 },
-    uGrainIntensity: { value: params.grainIntensity },
-    uVignetteIntensity: { value: params.vignetteIntensity },
-    uSpotRadius: { value: params.spotRadius },
-    uSpotIntensity: { value: params.spotIntensity },
-    uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+const vertSrc = `
+  attribute vec2 a_pos;
+  varying vec2 v_uv;
+  void main() {
+    v_uv = a_pos * 0.5 + 0.5;
+    gl_Position = vec4(a_pos, 0.0, 1.0);
+  }
+`;
+
+const fragSrc = `
+  precision mediump float;
+  varying vec2 v_uv;
+  uniform sampler2D u_depth;
+  uniform vec2 u_mouse;
+  uniform vec2 u_resolution;
+  uniform float u_time;
+  uniform float u_vignette;
+  uniform float u_vignetteSize;
+  uniform vec3 u_tint;
+  uniform float u_grain;
+  uniform float u_depthLightIntensity;
+  uniform float u_depthLightRadius;
+  uniform float u_depthScale;
+  uniform float u_ambientLight;
+  uniform vec4 u_imageBounds;
+
+  float hash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+
+  void main() {
+    vec2 uv = v_uv;
+    // Flip Y: WebGL v_uv has Y=0 at bottom, but screen/CSS has Y=0 at top
+    vec2 screenUV = vec2(uv.x, 1.0 - uv.y);
+    vec2 pixelPos = screenUV * u_resolution;
+    vec2 imgUV = (pixelPos - u_imageBounds.xy) / u_imageBounds.zw;
+    vec4 color = vec4(0.0);
+
+    if (imgUV.x >= 0.0 && imgUV.x <= 1.0 && imgUV.y >= 0.0 && imgUV.y <= 1.0) {
+      float texelX = 1.0 / u_resolution.x * 2.0;
+      float texelY = 1.0 / u_resolution.y * 2.0;
+      float dL = texture2D(u_depth, imgUV + vec2(-texelX, 0.0)).r;
+      float dR = texture2D(u_depth, imgUV + vec2( texelX, 0.0)).r;
+      float dU = texture2D(u_depth, imgUV + vec2(0.0, -texelY)).r;
+      float dD = texture2D(u_depth, imgUV + vec2(0.0,  texelY)).r;
+
+      vec3 normal = normalize(vec3(
+        (dL - dR) * u_depthScale,
+        (dU - dD) * u_depthScale,
+        1.0
+      ));
+
+      vec2 lightPos = vec2(u_mouse.x, 1.0 - u_mouse.y);
+      vec3 lightDir = normalize(vec3(
+        (lightPos.x - screenUV.x) * (u_resolution.x / u_resolution.y),
+        lightPos.y - screenUV.y,
+        0.35
+      ));
+
+      float dist = length(screenUV - lightPos);
+      float atten = 1.0 - smoothstep(0.0, u_depthLightRadius, dist);
+      float diffuse = max(dot(normal, lightDir), 0.0);
+      float lighting = (diffuse * atten * u_depthLightIntensity) + u_ambientLight;
+      vec3 lightColor = vec3(1.0, 0.92, 0.82) * lighting;
+      color = vec4(lightColor, lighting * 0.6);
     }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform float uTime;
-    uniform float uGrainIntensity;
-    uniform float uVignetteIntensity;
-    uniform float uSpotRadius;
-    uniform float uSpotIntensity;
-    uniform vec2 uResolution;
-    varying vec2 vUv;
 
-    // Film grain noise
-    float random(vec2 co) {
-      return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+    if (u_vignette > 0.0) {
+      vec2 vc = screenUV - 0.5;
+      float vDist = length(vc);
+      float vFade = smoothstep(u_vignetteSize, 0.9, vDist);
+      color.rgb -= vec3(vFade * u_vignette);
+      color.a = max(color.a, vFade * u_vignette);
     }
 
-    void main() {
-      vec4 color = texture2D(tDiffuse, vUv);
+    vec3 tintOffset = (u_tint - 1.0) * 0.15;
+    color.rgb += tintOffset;
+    color.a = max(color.a, length(tintOffset) * 0.5);
 
-      // Spotlight from center — soft circular light pool
-      vec2 center = vec2(0.5);
-      float aspect = uResolution.x / uResolution.y;
-      vec2 uv = vUv - center;
-      uv.x *= aspect;
-      float dist = length(uv);
-      float spotNorm = uSpotRadius / 14.0; // normalize to view
-      float spot = smoothstep(spotNorm, spotNorm * 0.2, dist) * uSpotIntensity;
-      color.rgb *= (0.15 + spot); // dark outside spotlight
-
-      // Vignette
-      float vDist = distance(vUv, center);
-      float vignette = 1.0 - smoothstep(0.3, 0.9, vDist) * uVignetteIntensity;
-      color.rgb *= vignette;
-
-      // Film grain
-      float grain = random(vUv * uTime) * 2.0 - 1.0;
-      color.rgb += grain * uGrainIntensity;
-
-      gl_FragColor = color;
+    if (u_grain > 0.0) {
+      float grainVal = hash(uv * u_resolution + u_time * 100.0) - 0.5;
+      color.rgb += vec3(grainVal * u_grain);
+      color.a = max(color.a, abs(grainVal) * u_grain);
     }
-  `,
+
+    gl_FragColor = color;
+  }
+`;
+
+function compileShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    console.error("Shader compile error:", gl.getShaderInfoLog(s));
+  }
+  return s;
+}
+
+const vs = compileShader(gl.VERTEX_SHADER, vertSrc);
+const fs = compileShader(gl.FRAGMENT_SHADER, fragSrc);
+const prog = gl.createProgram();
+gl.attachShader(prog, vs);
+gl.attachShader(prog, fs);
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, "a_pos");
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const uMouse = gl.getUniformLocation(prog, "u_mouse");
+const uRes = gl.getUniformLocation(prog, "u_resolution");
+const uTime = gl.getUniformLocation(prog, "u_time");
+const uVignette = gl.getUniformLocation(prog, "u_vignette");
+const uVignetteSize = gl.getUniformLocation(prog, "u_vignetteSize");
+const uTint = gl.getUniformLocation(prog, "u_tint");
+const uGrain = gl.getUniformLocation(prog, "u_grain");
+const uDepthLightIntensity = gl.getUniformLocation(prog, "u_depthLightIntensity");
+const uDepthLightRadius = gl.getUniformLocation(prog, "u_depthLightRadius");
+const uDepthScale = gl.getUniformLocation(prog, "u_depthScale");
+const uAmbientLight = gl.getUniformLocation(prog, "u_ambientLight");
+const uImageBounds = gl.getUniformLocation(prog, "u_imageBounds");
+
+const depthTex = gl.createTexture();
+const depthImg = new Image();
+depthImg.crossOrigin = "anonymous";
+depthImg.onload = () => {
+  gl.bindTexture(gl.TEXTURE_2D, depthTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, depthImg);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 };
+depthImg.src = "assets/pio-depth.png";
 
-const grainPass = new ShaderPass(grainVignetteShader);
-composer.addPass(grainPass);
-
-const outputPass = new OutputPass();
-composer.addPass(outputPass);
-
-function resize() {
+function resizeGL() {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  const aspect = w / h;
-  const viewSize = 14;
-
-  camera.left = (-viewSize * aspect) / 2;
-  camera.right = (viewSize * aspect) / 2;
-  camera.top = viewSize / 2;
-  camera.bottom = -viewSize / 2;
-  camera.near = 0.1;
-  camera.far = 100;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(w, h);
-  composer.setSize(w, h);
-  bloomPass.resolution.set(w, h);
-  grainPass.uniforms.uResolution.value.set(w, h);
+  fxCanvas.width = w;
+  fxCanvas.height = h;
+  gl.viewport(0, 0, w, h);
 }
+resizeGL();
 
-// Top-down camera
-camera.position.set(0, 30, 0);
-camera.lookAt(0, 0, 0);
-resize();
-window.addEventListener("resize", resize);
+function render(time) {
+  mouseX += (targetMouseX - mouseX) * 0.08;
+  mouseY += (targetMouseY - mouseY) * 0.08;
 
-// --- Orbit center tracking (align with the O in the logo) ---
-// The O in ORBIT is at ~38.7% x, ~69.5% y in the SVG viewBox (2733x1025)
-const orbitCenter = { x: 0, z: 0 };
+  bgImage.style.filter = `brightness(${fx.brightness}) contrast(${fx.contrast}) saturate(${fx.saturation})`;
 
-function updateOrbitCenter() {
-  const logo = document.querySelector(".logo");
-  if (!logo) return;
+  const { renderedW, renderedH, offsetX, offsetY } = getImageBounds();
 
-  const rect = logo.getBoundingClientRect();
-  // O center in pixel coords relative to viewport
-  const oScreenX = rect.left + rect.width * 0.387;
-  const oScreenY = rect.top + rect.height * 0.695;
+  gl.uniform2f(uMouse, mouseX, mouseY);
+  gl.uniform2f(uRes, fxCanvas.width, fxCanvas.height);
+  gl.uniform1f(uTime, time * 0.001);
+  gl.uniform1f(uVignette, fx.vignette);
+  gl.uniform1f(uVignetteSize, fx.vignetteSize);
+  gl.uniform3f(uTint, fx.tintR, fx.tintG, fx.tintB);
+  gl.uniform1f(uGrain, fx.grain);
+  gl.uniform1f(uDepthLightIntensity, fx.depthLightIntensity);
+  gl.uniform1f(uDepthLightRadius, fx.depthLightRadius);
+  gl.uniform1f(uDepthScale, fx.depthScale);
+  gl.uniform1f(uAmbientLight, fx.ambientLight);
+  gl.uniform4f(uImageBounds, offsetX, offsetY, renderedW, renderedH);
 
-  // Convert screen coords to NDC (-1 to 1)
-  const ndcX = (oScreenX / window.innerWidth) * 2 - 1;
-  const ndcY = -((oScreenY / window.innerHeight) * 2 - 1);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, depthTex);
+  gl.uniform1i(gl.getUniformLocation(prog, "u_depth"), 0);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-  // Convert NDC to world coords (orthographic)
-  orbitCenter.x = ndcX * (camera.right - camera.left) / 2;
-  orbitCenter.z = -ndcY * (camera.top - camera.bottom) / 2;
+  requestAnimationFrame(render);
 }
+requestAnimationFrame(render);
 
-// --- Lighting ---
-// Dim ambient — the spotlight shader will add the main light
-const ambientLight = new THREE.AmbientLight(0xffffff, 2);
-scene.add(ambientLight);
+// ============================================================
+// Tweakpane GUI
+// ============================================================
+const pane = new Pane({ title: "Post FX", expanded: false });
 
-const topLight = new THREE.DirectionalLight(0xffffff, 4);
-topLight.position.set(0, 30, 0);
-scene.add(topLight);
+const fVignette = pane.addFolder({ title: "Vignette" });
+fVignette.addBinding(fx, "vignette", { min: 0, max: 1, step: 0.01, label: "Intensity" });
+fVignette.addBinding(fx, "vignetteSize", { min: 0.1, max: 0.8, step: 0.01, label: "Size" });
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 1);
-fillLight.position.set(5, 20, 5);
-scene.add(fillLight);
+const fColor = pane.addFolder({ title: "Color" });
+fColor.addBinding(fx, "brightness", { min: 0.5, max: 1.5, step: 0.01 });
+fColor.addBinding(fx, "contrast", { min: 0.5, max: 1.5, step: 0.01 });
+fColor.addBinding(fx, "saturation", { min: 0, max: 2, step: 0.01 });
+fColor.addBinding(fx, "tintR", { min: 0.5, max: 1.5, step: 0.01, label: "Tint R" });
+fColor.addBinding(fx, "tintG", { min: 0.5, max: 1.5, step: 0.01, label: "Tint G" });
+fColor.addBinding(fx, "tintB", { min: 0.5, max: 1.5, step: 0.01, label: "Tint B" });
 
-// Accent point lights
-const rimLight1 = new THREE.PointLight(0x888888, 2, 25);
-rimLight1.position.set(5, 4, 5);
-scene.add(rimLight1);
+const fEffects = pane.addFolder({ title: "Effects" });
+fEffects.addBinding(fx, "grain", { min: 0, max: 0.3, step: 0.01, label: "Film Grain" });
 
-const rimLight2 = new THREE.PointLight(0x888888, 1.5, 25);
-rimLight2.position.set(-5, 4, -5);
-scene.add(rimLight2);
+const fDepth = pane.addFolder({ title: "Depth Lighting" });
+fDepth.addBinding(fx, "depthLightIntensity", { min: 0, max: 1, step: 0.01, label: "Intensity" });
+fDepth.addBinding(fx, "depthLightRadius", { min: 0.1, max: 1.0, step: 0.01, label: "Radius" });
+fDepth.addBinding(fx, "depthScale", { min: 0.1, max: 5.0, step: 0.1, label: "Normal Scale" });
+fDepth.addBinding(fx, "ambientLight", { min: 0, max: 0.5, step: 0.01, label: "Ambient" });
 
-// --- Central orb ---
-function createOrb() {
-  const group = new THREE.Group();
-
-  const orbGeo = new THREE.SphereGeometry(1.5, 64, 64);
-  const orbMat = new THREE.MeshStandardMaterial({
-    color: 0x111111,
-    emissive: 0x888888,
-    emissiveIntensity: 0.6,
-    roughness: 0.5,
-    metalness: 0.3,
-    transparent: true,
-    opacity: 0.8,
-  });
-  const orb = new THREE.Mesh(orbGeo, orbMat);
-  orb.position.y = -0.3;
-  group.add(orb);
-
-  const ringGeo = new THREE.RingGeometry(1.6, 1.7, 128);
-  const ringMat = new THREE.MeshBasicMaterial({
-    color: 0x888888,
-    transparent: true,
-    opacity: 0.35,
-    side: THREE.DoubleSide,
-  });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.01;
-  group.add(ring);
-
-  // Glow disc
-  const glowGeo = new THREE.CircleGeometry(5, 64);
-  const glowMat = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    uniforms: {
-      uColor: { value: new THREE.Color(0x888888) },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 uColor;
-      varying vec2 vUv;
-      void main() {
-        float d = distance(vUv, vec2(0.5));
-        float alpha = smoothstep(0.5, 0.1, d) * 0.15;
-        gl_FragColor = vec4(uColor, alpha);
-      }
-    `,
-  });
-  const glow = new THREE.Mesh(glowGeo, glowMat);
-  glow.rotation.x = -Math.PI / 2;
-  glow.position.y = -0.02;
-  group.add(glow);
-
-  return { group, orb, ring, glow };
-}
-
-const orbObj = createOrb();
-scene.add(orbObj.group);
-
-// --- Cel-shaded outline material ---
-const outlineMat = new THREE.ShaderMaterial({
-  side: THREE.BackSide,
-  uniforms: {
-    uThickness: { value: params.outlineThickness },
-    uColor: { value: new THREE.Color(0x000000) },
-  },
-  vertexShader: `
-    uniform float uThickness;
-    void main() {
-      vec3 pos = position + normal * uThickness;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform vec3 uColor;
-    void main() {
-      gl_FragColor = vec4(uColor, 1.0);
-    }
-  `,
+// --- Hotspot Layout Editor ---
+const fLayout = pane.addFolder({ title: "Layout Editor" });
+const editState = { editMode: false };
+fLayout.addBinding(editState, "editMode", { label: "Edit Hotspots" }).on("change", (e) => {
+  editMode = e.value;
+  createAnchors();
 });
 
-// --- Figure config ---
-const NUM_FIGURES = 7;
-const GLB_PATH = "assets/swimmer-inplace.glb";
+// Add per-hotspot folders with numeric inputs
+Object.entries(hotspots).forEach(([name, h]) => {
+  const f = fLayout.addFolder({ title: name, expanded: false });
+  f.addBinding(h, "left",   { min: 0, max: 100, step: 0.1, label: "Left %" }).on("change", () => { syncHotspot(name); if (editMode) updateAllAnchors(name); });
+  f.addBinding(h, "top",    { min: 0, max: 100, step: 0.1, label: "Top %" }).on("change", () => { syncHotspot(name); if (editMode) updateAllAnchors(name); });
+  f.addBinding(h, "width",  { min: 1, max: 100, step: 0.1, label: "Width %" }).on("change", () => { syncHotspot(name); if (editMode) updateAllAnchors(name); });
+  f.addBinding(h, "height", { min: 1, max: 100, step: 0.1, label: "Height %" }).on("change", () => { syncHotspot(name); if (editMode) updateAllAnchors(name); });
+});
 
-const figureConfigs = [];
-for (let i = 0; i < NUM_FIGURES; i++) {
-  figureConfigs.push({
-    angle: (Math.PI * 2 * i) / NUM_FIGURES + Math.random() * 0.5,
-    radius: 3.0 + Math.random() * 3.0,
-    speed: (0.12 + Math.random() * 0.1) * (Math.random() > 0.5 ? 1 : -1),
-    wobbleAmp: 0.15 + Math.random() * 0.3,
-    wobbleFreq: 0.3 + Math.random() * 0.5,
-    wobblePhase: Math.random() * Math.PI * 2,
-    opacity: 0.6 + Math.random() * 0.4,
-    animOffset: Math.random() * 5,
+// Export button — logs all values to console
+fLayout.addButton({ title: "Log All Positions" }).on("click", () => {
+  const out = {};
+  Object.entries(hotspots).forEach(([name, h]) => {
+    out[name] = { left: +h.left.toFixed(1), top: +h.top.toFixed(1), width: +h.width.toFixed(1), height: +h.height.toFixed(1) };
   });
-}
+  console.log("Hotspot positions:", JSON.stringify(out, null, 2));
+});
 
-// --- Load GLB or create fallback figures ---
-const mixers = [];
-const figures = [];
-const pivots = [];
+// ============================================================
+// Interactive Features
+// ============================================================
 
-function createFallbackFigure(config) {
-  const group = new THREE.Group();
-  const mat = new THREE.MeshToonMaterial({
-    color: 0xe8e4e0,
-    transparent: true,
-    opacity: config.opacity,
-  });
-
-  const bodyGeo = new THREE.CapsuleGeometry(0.12, 0.7, 4, 8);
-  const body = new THREE.Mesh(bodyGeo, mat);
-  body.rotation.x = Math.PI / 2;
-  group.add(body);
-
-  const headGeo = new THREE.SphereGeometry(0.15, 8, 8);
-  const head = new THREE.Mesh(headGeo, mat);
-  head.position.z = -0.55;
-  group.add(head);
-
-  const armGeo = new THREE.CapsuleGeometry(0.06, 0.5, 4, 8);
-  const leftArm = new THREE.Mesh(armGeo, mat);
-  leftArm.position.set(-0.3, 0, -0.2);
-  leftArm.rotation.z = 0.5;
-  leftArm.rotation.x = Math.PI / 2;
-  group.add(leftArm);
-
-  const rightArm = new THREE.Mesh(armGeo, mat);
-  rightArm.position.set(0.3, 0, 0.05);
-  rightArm.rotation.z = -0.5;
-  rightArm.rotation.x = Math.PI / 2;
-  group.add(rightArm);
-
-  const legGeo = new THREE.CapsuleGeometry(0.07, 0.5, 4, 8);
-  const leftLeg = new THREE.Mesh(legGeo, mat);
-  leftLeg.position.set(-0.1, 0, 0.55);
-  leftLeg.rotation.x = Math.PI / 2 + 0.2;
-  group.add(leftLeg);
-
-  const rightLeg = new THREE.Mesh(legGeo, mat);
-  rightLeg.position.set(0.1, 0, 0.5);
-  rightLeg.rotation.x = Math.PI / 2 - 0.15;
-  group.add(rightLeg);
-
-  group.userData = { leftArm, rightArm, leftLeg, rightLeg, config };
-  return group;
-}
-
-function animateFallbackFigure(fig, time) {
-  const d = fig.userData;
-  const t = time * 2 + d.config.animOffset;
-  d.leftArm.rotation.z = 0.5 + Math.sin(t) * 0.6;
-  d.leftArm.position.z = -0.2 + Math.sin(t) * 0.15;
-  d.rightArm.rotation.z = -0.5 + Math.sin(t + Math.PI) * 0.6;
-  d.rightArm.position.z = 0.05 + Math.sin(t + Math.PI) * 0.15;
-  d.leftLeg.rotation.x = Math.PI / 2 + Math.sin(t * 1.5) * 0.3;
-  d.rightLeg.rotation.x = Math.PI / 2 + Math.sin(t * 1.5 + Math.PI) * 0.3;
-}
-
-// Try loading GLB
-const loader = new GLTFLoader();
-
-loader.load(
-  GLB_PATH,
-  (gltf) => {
-    const model = gltf.scene;
-    const animations = gltf.animations;
-
-    const box = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const modelHeight = size.y;
-    const targetHeight = params.scale;
-    const baseScale = targetHeight / modelHeight;
-
-    console.log(
-      `Model: ${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}, scale: ${baseScale.toFixed(4)}`
-    );
-
-    figureConfigs.forEach((config) => {
-      const clone = SkeletonUtils.clone(model);
-      const s = baseScale * (0.8 + Math.random() * 0.4);
-      clone.scale.setScalar(s);
-
-      // Cel-shaded toon material + outline
-      clone.traverse((child) => {
-        if (child.isMesh) {
-          child.material = new THREE.MeshToonMaterial({
-            color: 0xe8e4e0,
-            emissive: 0x444444,
-            emissiveIntensity: 0.1,
-            transparent: true,
-            opacity: config.opacity,
-          });
-          child.castShadow = false;
-          child.receiveShadow = false;
-
-          // Add outline
-          if (child.isSkinnedMesh) {
-            const outlineClone = outlineMat.clone();
-            const skinnedOutline = new THREE.SkinnedMesh(child.geometry, outlineClone);
-            skinnedOutline.skeleton = child.skeleton;
-            skinnedOutline.bindMatrix = child.bindMatrix;
-            skinnedOutline.bindMatrixInverse = child.bindMatrixInverse;
-            skinnedOutline.name = "outline";
-            child.parent.add(skinnedOutline);
-          } else {
-            const outlineClone = outlineMat.clone();
-            const outlineMesh = new THREE.Mesh(child.geometry, outlineClone);
-            outlineMesh.name = "outline";
-            child.parent.add(outlineMesh);
-          }
-        }
-      });
-
-      // pivot → clone (orientation), wrapper → pivot (orbit position + heading)
-      const pivot = new THREE.Group();
-      pivot.rotation.set(params.pivotX, params.pivotY, params.pivotZ);
-      pivot.add(clone);
-      pivots.push(pivot);
-
-      const wrapper = new THREE.Group();
-      wrapper.add(pivot);
-
-      scene.add(wrapper);
-      figures.push({ mesh: wrapper, inner: clone, pivot, config, isFallback: false });
-
-      // Static pose only — no animation playback
-    });
-  },
-  (progress) => {
-    if (progress.total > 0) {
-      console.log(`Loading: ${((progress.loaded / progress.total) * 100).toFixed(0)}%`);
-    }
-  },
-  (err) => {
-    console.log("No GLB found, using fallback figures.", err);
-    figureConfigs.forEach((config) => {
-      const fig = createFallbackFigure(config);
-      scene.add(fig);
-      figures.push({ mesh: fig, config, isFallback: true });
-    });
+// --- Turntable ---
+turntableBtn.addEventListener("click", () => {
+  if (editMode) return; // don't trigger actions in edit mode
+  isPlaying = !isPlaying;
+  if (isPlaying) {
+    spotifyFrame.src = SPOTIFY_EMBED_URL;
+    spotifyPlayer.style.display = "block";
+    requestAnimationFrame(() => spotifyPlayer.classList.add("visible"));
+    turntableBtn.classList.add("playing");
+    speakerLeft.classList.add("pulsing");
+    speakerRight.classList.add("pulsing");
+    spawnNote();
+    noteInterval = setInterval(spawnNote, 800);
+  } else {
+    stopPlaying();
   }
-);
+});
 
-// --- Animation loop ---
-const clock = new THREE.Clock();
+spotifyClose.addEventListener("click", (e) => {
+  e.stopPropagation();
+  stopPlaying();
+});
 
-function animate() {
-  requestAnimationFrame(animate);
-
-  const delta = clock.getDelta();
-  const time = clock.getElapsedTime();
-
-  // No animation mixer updates — static poses
-
-  // Track orbit center to the O in the logo
-  updateOrbitCenter();
-  orbObj.group.position.set(orbitCenter.x, 0, orbitCenter.z);
-
-  // Orb controls
-  orbObj.group.visible = params.orbVisible;
-  const pulse = 1 + Math.sin(time * 0.5) * 0.04;
-  orbObj.orb.scale.setScalar(params.orbScale * pulse);
-  orbObj.orb.material.opacity = params.orbOpacity;
-  orbObj.orb.material.emissiveIntensity = params.orbEmissive;
-  orbObj.ring.visible = params.orbRing;
-  orbObj.ring.material.opacity = 0.25 + Math.sin(time * 0.8) * 0.1;
-  orbObj.glow.visible = params.orbGlow;
-
-  // Color controls
-  scene.background.set(params.bgColor);
-  orbObj.orb.material.emissive.set(params.orbColor);
-  orbObj.ring.material.color.set(params.orbColor);
-  orbObj.glow.material.uniforms.uColor.value.set(params.orbColor);
-  outlineMat.uniforms.uColor.value.set(params.outlineColor);
-
-  // Update figure materials
-  figures.forEach(({ inner, isFallback }) => {
-    if (!inner) return;
-    const target = isFallback ? inner : inner;
-    target.traverse((child) => {
-      if (child.isMesh && child.name !== "outline") {
-        child.material.color.set(params.figureColor);
-      }
-    });
-  });
-
-  // Logo toggle
-  const logoEl = document.querySelector(".logo");
-  if (logoEl) {
-    logoEl.src = params.logoNoCircle
-      ? "assets/logo-no-circle.svg"
-      : "assets/logo.svg";
-  }
-
-  // Update tweakpane-driven values
-  pivots.forEach((p) => {
-    p.rotation.set(params.pivotX, params.pivotY, params.pivotZ);
-  });
-  outlineMat.uniforms.uThickness.value = params.outlineThickness;
-
-  // Post-processing params
-  bloomPass.strength = params.bloomStrength;
-  bloomPass.radius = params.bloomRadius;
-  bloomPass.threshold = params.bloomThreshold;
-  grainPass.uniforms.uTime.value = time;
-  grainPass.uniforms.uGrainIntensity.value = params.grainIntensity;
-  grainPass.uniforms.uVignetteIntensity.value = params.vignetteIntensity;
-  grainPass.uniforms.uSpotRadius.value = params.spotRadius;
-  grainPass.uniforms.uSpotIntensity.value = params.spotIntensity;
-
-  // Move figures in orbits — heading derived from movement
-  figures.forEach(({ mesh, config, isFallback }) => {
-    config.angle += config.speed * params.speed * delta;
-
-    const wobble =
-      Math.sin(time * config.wobbleFreq + config.wobblePhase) * config.wobbleAmp;
-    const r = config.radius + wobble;
-
-    const x = orbitCenter.x + Math.cos(config.angle) * r;
-    const z = orbitCenter.z + Math.sin(config.angle) * r;
-
-    const prevX = config.prevX ?? x;
-    const prevZ = config.prevZ ?? z;
-    const dx = x - prevX;
-    const dz = z - prevZ;
-
-    if (dx !== 0 || dz !== 0) {
-      mesh.rotation.y = Math.atan2(dx, dz);
-    }
-
-    config.prevX = x;
-    config.prevZ = z;
-    mesh.position.set(x, 0, z);
-
-    if (isFallback) {
-      animateFallbackFigure(mesh, time);
-    }
-  });
-
-  composer.render();
+function stopPlaying() {
+  isPlaying = false;
+  spotifyPlayer.classList.remove("visible");
+  setTimeout(() => {
+    spotifyPlayer.style.display = "none";
+    spotifyFrame.src = "";
+  }, 400);
+  turntableBtn.classList.remove("playing");
+  speakerLeft.classList.remove("pulsing");
+  speakerRight.classList.remove("pulsing");
+  clearInterval(noteInterval);
+  noteInterval = null;
 }
 
-animate();
+// --- Music Notes ---
+const noteChars = ["♪", "♫", "♩", "♬"];
+function spawnNote() {
+  const note = document.createElement("span");
+  note.className = "music-note";
+  note.textContent = noteChars[Math.floor(Math.random() * noteChars.length)];
+  note.style.left = Math.random() * 80 + 10 + "%";
+  note.style.setProperty("--drift", (Math.random() - 0.5) * 40 + "px");
+  note.style.setProperty("--rotate", (Math.random() - 0.5) * 60 + "deg");
+  note.style.animationDelay = Math.random() * 0.3 + "s";
+  musicNotes.appendChild(note);
+  note.addEventListener("animationend", () => note.remove());
+}
+
+// --- Lamp: crossfade to dusk photo ---
+lampBtn.addEventListener("click", () => {
+  if (editMode) return;
+  isDark = !isDark;
+  bgImageDusk.classList.toggle("active", isDark);
+});
+
+// --- TV Static ---
+function drawStatic() {
+  const ctx = staticCanvas.getContext("2d");
+  const w = (staticCanvas.width = 200);
+  const h = (staticCanvas.height = 150);
+  function renderFrame() {
+    const imageData = ctx.createImageData(w, h);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const v = Math.random() * 255;
+      data[i] = v;
+      data[i + 1] = v;
+      data[i + 2] = v;
+      data[i + 3] = 180;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    requestAnimationFrame(renderFrame);
+  }
+  renderFrame();
+}
+drawStatic();
+
+tvBtn.addEventListener("click", () => {
+  if (editMode) return;
+  const isVisible = tvStatic.style.display !== "none";
+  tvStatic.style.display = isVisible ? "none" : "block";
+});
+
+// --- ESC ---
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && isPlaying) stopPlaying();
+});

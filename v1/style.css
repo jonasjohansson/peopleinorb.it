@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Tweakpane on top of everything */
+.tp-dfwv {
+  z-index: 100 !important;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: #000;
+  color: #fff;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+}
+
+/* Canvas background */
+#orb-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* Content overlay */
+.content-overlay {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5vh 1rem;
+  pointer-events: none;
+}
+
+.content-overlay a,
+.content-overlay button {
+  pointer-events: auto;
+}
+
+/* Header + Logo */
+.band-header {
+  text-align: center;
+  padding: 1vh 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.logo {
+  width: min(85vw, 700px);
+  height: auto;
+}
+
+/* Grid layout — matches logo width, pushed to bottom */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5vh 3rem;
+  width: min(85vw, 700px);
+  flex: 1;
+  align-content: end;
+}
+
+/* Panels */
+.panel {
+  padding: 0.5vh 0;
+}
+
+.panel h2 {
+  font-family: "Space Mono", monospace;
+  font-size: 0.65rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.6rem;
+}
+
+.panel p {
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* Concert list */
+.concert-list {
+  list-style: none;
+}
+
+.concert-list li {
+  display: flex;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
+}
+
+.concert-list time {
+  font-family: "Space Mono", monospace;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.concert-list span {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* Link list */
+.link-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.link-list a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 300;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
+  pointer-events: auto;
+}
+
+.link-list a:hover {
+  color: #fff;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.75rem;
+  font-family: "Space Mono", monospace;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+  pointer-events: auto;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Email link */
+.email {
+  display: inline-block;
+  margin-top: 0.3rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  font-family: "Space Mono", monospace;
+  font-size: 0.8rem;
+  pointer-events: auto;
+  transition: color 0.3s ease;
+}
+
+.email:hover {
+  color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .content-overlay {
+    padding: 1.5rem 1rem;
+  }
+
+  .band-header {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
