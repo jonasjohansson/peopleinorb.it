@@ -109,6 +109,8 @@ body {
 /* --- Hotspot styles (positions set by JS) --- */
 
 
+
+
 /* TV screen — static/video fills the TV screen area (positioned by JS) */
 .tv-screen {
   position: absolute;

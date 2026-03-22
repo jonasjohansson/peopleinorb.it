@@ -75,11 +75,12 @@
 
         <!-- TV video container -->
         <div class="tv-screen" id="tvScreen">
-          <!-- Default: logo -->
-          <div class="tv-logo" id="tvLogo">
+          <!-- Logo (hidden by default) -->
+          <div class="tv-logo" id="tvLogo" style="display: none">
             <img src="assets/logo.svg" alt="People in Orbit" />
           </div>
-          <div class="tv-static" id="tvStatic" style="display: none">
+          <!-- Static noise (shown by default) -->
+          <div class="tv-static" id="tvStatic">
             <canvas id="staticCanvas"></canvas>
           </div>
           <!-- YouTube player (created by API) -->
@@ -104,8 +105,6 @@
           </div>
           <!-- TV effects overlay -->
           <div class="tv-glare"></div>
-          <div class="tv-vignette"></div>
-          <div class="tv-scanlines"></div>
         </div>
 
         <!-- Warm Lamp — toggle dark/light -->

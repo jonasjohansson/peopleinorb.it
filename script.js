@@ -58,6 +58,7 @@ const fx = {
   brightness: 1.0,
   contrast: 1.0,
   saturation: 1.0,
+  depthEnabled: false,
   depthLightIntensity: 0.3,
   depthLightRadius: 0.4,
   depthScale: 1.5,
@@ -90,12 +91,13 @@ function syncHotspot(name) {
     h.screenEl.style.width = h.width + "%";
     h.screenEl.style.height = h.height + "%";
   }
-  // Also sync the TV clickable area to match the screen
+  // Also sync the TV clickable area and backlight to match the screen
   if (name === "tv") {
     tvBtn.style.left = h.left + "%";
     tvBtn.style.top = h.top + "%";
     tvBtn.style.width = h.width + "%";
     tvBtn.style.height = h.height + "%";
+
   }
 }
 
@@ -243,6 +245,7 @@ function syncLayout() {
   hotspotLayer.style.height = renderedH + "px";
   hotspotLayer.style.left = "0px";
   hotspotLayer.style.top = "0px";
+
 
   // Center scroll position on first load
   const vw = window.innerWidth;
@@ -442,10 +445,10 @@ function render(time) {
   gl.uniform1f(uVignetteSize, fx.vignetteSize);
   gl.uniform3f(uTint, fx.tintR, fx.tintG, fx.tintB);
   gl.uniform1f(uGrain, fx.grain);
-  gl.uniform1f(uDepthLightIntensity, fx.depthLightIntensity);
+  gl.uniform1f(uDepthLightIntensity, fx.depthEnabled ? fx.depthLightIntensity : 0);
   gl.uniform1f(uDepthLightRadius, fx.depthLightRadius);
   gl.uniform1f(uDepthScale, fx.depthScale);
-  gl.uniform1f(uAmbientLight, fx.ambientLight);
+  gl.uniform1f(uAmbientLight, fx.depthEnabled ? fx.ambientLight : 0);
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -481,6 +484,7 @@ const fEffects = pane.addFolder({ title: "Effects" });
 fEffects.addBinding(fx, "grain", { min: 0, max: 0.3, step: 0.01, label: "Film Grain" });
 
 const fDepth = pane.addFolder({ title: "Depth Lighting" });
+fDepth.addBinding(fx, "depthEnabled", { label: "Enabled" });
 fDepth.addBinding(fx, "depthLightIntensity", { min: 0, max: 1, step: 0.01, label: "Intensity" });
 fDepth.addBinding(fx, "depthLightRadius", { min: 0.1, max: 1.0, step: 0.01, label: "Radius" });
 fDepth.addBinding(fx, "depthScale", { min: 0.1, max: 5.0, step: 0.1, label: "Normal Scale" });
@@ -545,6 +549,7 @@ function syncHifiLed() {
 fLed.addBinding(hifi, "left", { min: 40, max: 80, step: 0.1, label: "Hifi Left %" }).on("change", syncHifiLed);
 fLed.addBinding(hifi, "top", { min: 60, max: 95, step: 0.1, label: "Hifi Top %" }).on("change", syncHifiLed);
 fLed.addBinding(hifi, "size", { min: 2, max: 12, step: 0.5, label: "Hifi Size px" }).on("change", syncHifiLed);
+
 
 // --- Hotspot Layout Editor ---
 const fLayout = pane.addFolder({ title: "Layout Editor" });
@@ -623,6 +628,7 @@ window.onYouTubeIframeAPIReady = () => {
       },
     },
   });
+
 };
 
 // Load YouTube IFrame API script
@@ -667,15 +673,17 @@ function setTVMode(mode) {
     stopTimeline();
   }
 
+
   tvMode = mode;
 
   // Toggle power LED
   const tvLed = document.getElementById("tvLed");
   if (tvLed) tvLed.classList.toggle("on", mode !== "logo");
 
+
   switch (mode) {
     case "logo":
-      if (tvLogo) tvLogo.style.display = "flex";
+      tvStatic.style.display = "block";
       break;
     case "spotify":
       tvSpotify.src = getSpotifyEmbedUrl();
@@ -855,15 +863,42 @@ function drawStatic() {
   const ctx = staticCanvas.getContext("2d");
   const w = (staticCanvas.width = 200);
   const h = (staticCanvas.height = 150);
+  let globalFlicker = 1.0;
+
   function renderFrame() {
     const imageData = ctx.createImageData(w, h);
     const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const v = Math.random() * 255;
-      data[i] = v;
-      data[i + 1] = v;
-      data[i + 2] = v;
-      data[i + 3] = 180;
+
+    // Very gentle global flicker
+    if (Math.random() < 0.04) {
+      globalFlicker = 0.92 + Math.random() * 0.16;
+    }
+
+    // Rare faint horizontal band
+    const bandY = Math.random() < 0.02 ? Math.floor(Math.random() * h) : -1;
+    const bandH = 1 + Math.floor(Math.random() * 2);
+    const bandBright = 0.85 + Math.random() * 0.3;
+
+    for (let y = 0; y < h; y++) {
+      const scanlineBias = 0.9 + Math.random() * 0.2;
+      const inBand = bandY >= 0 && y >= bandY && y < bandY + bandH;
+
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+
+        // Gentle contrast push
+        let v = Math.random();
+        v = v < 0.5 ? v * 0.7 : 0.3 + v * 0.7;
+        v = v * 255 * scanlineBias * globalFlicker;
+
+        if (inBand) v *= bandBright;
+
+        v = Math.min(255, Math.max(0, v));
+        data[i] = v;
+        data[i + 1] = v;
+        data[i + 2] = v;
+        data[i + 3] = 190;
+      }
     }
     ctx.putImageData(imageData, 0, 0);
     requestAnimationFrame(renderFrame);
