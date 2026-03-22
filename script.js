@@ -1140,3 +1140,43 @@ drawStatic();
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && isPlaying) stopPlaying();
 });
+
+
+// ============================================================
+// Portal — Generated image behind the wall, mouse-following mask
+// ============================================================
+const portal = { size: 12 };
+const portalBg = document.getElementById("portalBg");
+
+// Size portal bg to match the main image
+function syncPortalSize() {
+  const { renderedW, renderedH } = getImageBounds();
+  portalBg.style.width = renderedW + "px";
+  portalBg.style.height = renderedH + "px";
+}
+
+// Mouse-following circular mask
+let portalMouseX = 50, portalMouseY = 50;
+
+function syncPortalMask() {
+  const r = portal.size;
+  const mask = `radial-gradient(circle ${r}vw at ${portalMouseX}% ${portalMouseY}%, transparent 0%, transparent 70%, black 100%)`;
+  bgImage.style.webkitMaskImage = mask;
+  bgImage.style.maskImage = mask;
+  bgImageDusk.style.webkitMaskImage = mask;
+  bgImageDusk.style.maskImage = mask;
+}
+
+scene.addEventListener("mousemove", (e) => {
+  const { renderedW, renderedH } = getImageBounds();
+  portalMouseX = ((e.clientX + scene.scrollLeft) / renderedW) * 100;
+  portalMouseY = ((e.clientY + scene.scrollTop) / renderedH) * 100;
+  syncPortalMask();
+});
+
+syncPortalSize();
+syncPortalMask();
+window.addEventListener("resize", () => { syncPortalSize(); syncPortalMask(); });
+
+const fPortal = pane.addFolder({ title: "Portal", expanded: false });
+fPortal.addBinding(portal, "size", { min: 2, max: 30, step: 0.5, label: "Size (vw)" }).on("change", syncPortalMask);
