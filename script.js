@@ -1145,8 +1145,25 @@ document.addEventListener("keydown", (e) => {
 // ============================================================
 // Portal — Generated image behind the wall, mouse-following mask
 // ============================================================
-const portal = { size: 12 };
+const portal = { size: 7 };
 const portalBg = document.getElementById("portalBg");
+
+// Random portal background on each page load
+const portalImages = [
+  "assets/portal-1.png",
+  "assets/portal-2.png",
+  "assets/portal-3.png",
+  "assets/portal-4.png",
+  "assets/portal-5.png",
+  "assets/portal-6.png",
+];
+let portalIdx = Math.floor(Math.random() * portalImages.length);
+portalBg.src = portalImages[portalIdx];
+
+scene.addEventListener("click", () => {
+  portalIdx = (portalIdx + 1) % portalImages.length;
+  portalBg.src = portalImages[portalIdx];
+});
 
 // Size portal bg to match the main image
 function syncPortalSize() {
