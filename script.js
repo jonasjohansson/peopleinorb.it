@@ -1156,6 +1156,22 @@ const portalImages = [
   "assets/portal-4.png",
   "assets/portal-5.png",
   "assets/portal-6.png",
+  "assets/portal-7.jpg",
+  "assets/portal-8.jpg",
+  "assets/portal-9.jpg",
+  "assets/portal-10.jpg",
+  "assets/portal-11.jpg",
+  "assets/portal-12.jpg",
+  "assets/portal-13.jpg",
+  "assets/portal-14.jpg",
+  "assets/portal-15.jpg",
+  "assets/portal-16.jpg",
+  "assets/portal-17.jpg",
+  "assets/portal-18.jpg",
+  "assets/portal-19.jpg",
+  "assets/portal-20.jpg",
+  "assets/portal-21.jpg",
+  "assets/portal-22.jpg",
 ];
 let portalIdx = Math.floor(Math.random() * portalImages.length);
 portalBg.src = portalImages[portalIdx];
