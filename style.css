@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Rollerscript Rough';
+  src: local('Rollerscript Rough'), local('Rollerscript-Rough');
+  font-weight: normal;
+  font-style: normal;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -402,6 +409,99 @@ body {
   }
 }
 
+
+/* Wall text — typography overlaid on the image */
+.wall-text {
+  position: absolute;
+  color: inherit;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1.5;
+}
+
+/* Tour dates — above the TV */
+.wall-text--dates {
+  left: 19%;
+  top: 49.5%;
+  width: 27%;
+  font-family: "Permanent Marker", "Rock Salt", system-ui, sans-serif;
+}
+
+.wall-text__heading {
+  font-size: 1.4em;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.4em;
+  color: inherit;
+  font-weight: normal;
+}
+
+.wall-text__list {
+  list-style: none;
+  font-size: 0.85em;
+}
+
+.wall-text__list li {
+  display: flex;
+  gap: 0.8em;
+  margin-bottom: 0.25em;
+}
+
+.wall-text__list .date {
+  font-weight: bold;
+  min-width: 4em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wall-text__list .venue {
+  flex: 1;
+}
+
+.wall-text__list .city {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Band members — above the vinyl */
+.wall-text--members {
+  left: 48%;
+  top: 42%;
+  width: 14%;
+  font-family: "Caveat", "Northwell", system-ui, sans-serif;
+  font-size: 0.75em;
+  line-height: 1.6;
+}
+
+.wall-text--members p {
+  margin: 0 0 0.15em;
+  white-space: nowrap;
+}
+
+.wall-text--members span {
+  opacity: 0.6;
+}
+
+/* Right wall text */
+.wall-text--right {
+  left: 85%;
+  top: 23%;
+  width: 12%;
+  font-family: "Caveat", "Northwell", system-ui, sans-serif;
+  font-size: 0.7em;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.wall-text--right .wall-text__heading {
+  font-size: 1.6em;
+  margin-bottom: 0.3em;
+}
+
+.wall-text--right p {
+  margin: 0 0 0.15em;
+  opacity: 0.6;
+}
 
 /* Book easter egg */
 .hotspot--book {

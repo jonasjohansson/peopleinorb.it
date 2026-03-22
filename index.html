@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>People in Orbit</title>
+    <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="/favicon/site.webmanifest" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -126,6 +131,34 @@
         <!-- Speaker pulse overlays -->
         <div class="speaker speaker--left" id="speakerLeft"></div>
         <div class="speaker speaker--right" id="speakerRight"></div>
+
+        <!-- Tour dates — above TV -->
+        <div class="wall-text wall-text--dates" id="tourDates">
+          <h2 class="wall-text__heading">Tour 2026</h2>
+          <ul class="wall-text__list">
+            <li><span class="date">Mar 28</span> <span class="venue">Fasching</span> <span class="city">Stockholm</span></li>
+            <li><span class="date">Apr 12</span> <span class="venue">Jazzhouse</span> <span class="city">Copenhagen</span></li>
+            <li><span class="date">May 03</span> <span class="venue">Nefertiti</span> <span class="city">Gothenburg</span></li>
+            <li><span class="date">Jun 14</span> <span class="venue">Victoria</span> <span class="city">Oslo</span></li>
+            <li><span class="date">Aug 22</span> <span class="venue">Jazz Fest</span> <span class="city">Helsinki</span></li>
+          </ul>
+        </div>
+
+        <!-- Band members — above vinyl -->
+        <div class="wall-text wall-text--members" id="bandMembers">
+          <p>Adam Sass – <span>Trumpet</span></p>
+          <p>Edvin Ekman – <span>Tenor Saxophone, EFX</span></p>
+          <p>Niklas Bergström – <span>Piano, Minimoog, EFX</span></p>
+          <p>Edvin Elmersson – <span>Double Bass</span></p>
+          <p>Frank William Reis – <span>Drums</span></p>
+        </div>
+
+        <!-- Right wall text -->
+        <div class="wall-text wall-text--right" id="rightWallText">
+          <h2 class="wall-text__heading">Close/Away</h2>
+          <p>Out now on all platforms</p>
+          <p>Booking: info@peopleinorbit.se</p>
+        </div>
 
         <!-- Easter egg: Book spine -->
         <div class="hotspot hotspot--book" id="bookEgg" aria-label="Secret">

@@ -245,16 +245,18 @@ function syncLayout() {
   hotspotLayer.style.height = renderedH + "px";
   hotspotLayer.style.left = "0px";
   hotspotLayer.style.top = "0px";
+  // Scale text with image (1% of image width as base font-size)
+  hotspotLayer.style.fontSize = (renderedW * 0.01) + "px";
 
 
-  // Center scroll position on first load
+  // Center-bottom scroll position on first load
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   if (renderedW > vw) {
     scene.scrollLeft = (renderedW - vw) / 2;
   }
   if (renderedH > vh) {
-    scene.scrollTop = (renderedH - vh) / 2;
+    scene.scrollTop = renderedH - vh; // bottom
   }
 }
 
@@ -468,11 +470,41 @@ requestAnimationFrame(render);
 // ============================================================
 const pane = new Pane({ title: "Post FX", expanded: false });
 
-const fVignette = pane.addFolder({ title: "Vignette" });
+// Make Tweakpane draggable
+{
+  const container = pane.element.parentElement;
+  container.style.position = "fixed";
+  container.style.cursor = "grab";
+  container.style.zIndex = "200";
+  let dragging = false, ox = 0, oy = 0;
+  const title = container.querySelector(".tp-rotv_t");
+  if (title) {
+    title.style.cursor = "grab";
+    title.addEventListener("mousedown", (e) => {
+      dragging = true;
+      ox = e.clientX - container.offsetLeft;
+      oy = e.clientY - container.offsetTop;
+      title.style.cursor = "grabbing";
+      e.preventDefault();
+    });
+  }
+  document.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    container.style.left = (e.clientX - ox) + "px";
+    container.style.top = (e.clientY - oy) + "px";
+    container.style.right = "auto";
+  });
+  document.addEventListener("mouseup", () => {
+    dragging = false;
+    if (title) title.style.cursor = "grab";
+  });
+}
+
+const fVignette = pane.addFolder({ title: "Vignette", expanded: false });
 fVignette.addBinding(fx, "vignette", { min: 0, max: 1, step: 0.01, label: "Intensity" });
 fVignette.addBinding(fx, "vignetteSize", { min: 0.1, max: 0.8, step: 0.01, label: "Size" });
 
-const fColor = pane.addFolder({ title: "Color" });
+const fColor = pane.addFolder({ title: "Color", expanded: false });
 fColor.addBinding(fx, "brightness", { min: 0.5, max: 1.5, step: 0.01 });
 fColor.addBinding(fx, "contrast", { min: 0.5, max: 1.5, step: 0.01 });
 fColor.addBinding(fx, "saturation", { min: 0, max: 2, step: 0.01 });
@@ -480,10 +512,10 @@ fColor.addBinding(fx, "tintR", { min: 0.5, max: 1.5, step: 0.01, label: "Tint R"
 fColor.addBinding(fx, "tintG", { min: 0.5, max: 1.5, step: 0.01, label: "Tint G" });
 fColor.addBinding(fx, "tintB", { min: 0.5, max: 1.5, step: 0.01, label: "Tint B" });
 
-const fEffects = pane.addFolder({ title: "Effects" });
+const fEffects = pane.addFolder({ title: "Effects", expanded: false });
 fEffects.addBinding(fx, "grain", { min: 0, max: 0.3, step: 0.01, label: "Film Grain" });
 
-const fDepth = pane.addFolder({ title: "Depth Lighting" });
+const fDepth = pane.addFolder({ title: "Depth Lighting", expanded: false });
 fDepth.addBinding(fx, "depthEnabled", { label: "Enabled" });
 fDepth.addBinding(fx, "depthLightIntensity", { min: 0, max: 1, step: 0.01, label: "Intensity" });
 fDepth.addBinding(fx, "depthLightRadius", { min: 0.1, max: 1.0, step: 0.01, label: "Radius" });
@@ -508,7 +540,7 @@ function syncTVGrade() {
   if (spotifyEl) { spotifyEl.style.filter = filter; spotifyEl.style.opacity = tvGrade.opacity; }
 }
 
-const fTVGrade = pane.addFolder({ title: "TV Color" });
+const fTVGrade = pane.addFolder({ title: "TV Color", expanded: false });
 fTVGrade.addBinding(tvGrade, "brightness", { min: 0.3, max: 2.0, step: 0.01 }).on("change", syncTVGrade);
 fTVGrade.addBinding(tvGrade, "contrast", { min: 0.3, max: 2.0, step: 0.01 }).on("change", syncTVGrade);
 fTVGrade.addBinding(tvGrade, "saturation", { min: 0, max: 2.0, step: 0.01 }).on("change", syncTVGrade);
@@ -530,7 +562,7 @@ function syncLed() {
   tvLedEl.style.height = led.size + "px";
 }
 
-const fLed = pane.addFolder({ title: "LEDs" });
+const fLed = pane.addFolder({ title: "LEDs", expanded: false });
 fLed.addBinding(led, "left", { min: 10, max: 50, step: 0.1, label: "TV Left %" }).on("change", syncLed);
 fLed.addBinding(led, "top", { min: 80, max: 98, step: 0.1, label: "TV Top %" }).on("change", syncLed);
 fLed.addBinding(led, "size", { min: 2, max: 12, step: 0.5, label: "TV Size px" }).on("change", syncLed);
@@ -551,8 +583,204 @@ fLed.addBinding(hifi, "top", { min: 60, max: 95, step: 0.1, label: "Hifi Top %" 
 fLed.addBinding(hifi, "size", { min: 2, max: 12, step: 0.5, label: "Hifi Size px" }).on("change", syncHifiLed);
 
 
+// --- Wall Text Positioning ---
+const tourDatesEl = document.getElementById("tourDates");
+const bandMembersEl = document.getElementById("bandMembers");
+
+const rightWallEl = document.getElementById("rightWallText");
+
+const blendModes = ["normal","multiply","screen","overlay","darken","lighten","color-dodge","color-burn","soft-light","hard-light"];
+const fontOptions = {
+  "Permanent Marker": "'Permanent Marker', cursive",
+  "Caveat": "'Caveat', cursive",
+  "Rock Salt": "'Rock Salt', cursive",
+  "Northwell": "'Northwell', cursive",
+  "Amatic SC": "'Amatic SC', cursive",
+  "Kalam": "'Kalam', cursive",
+  "Londrina Shadow": "'Londrina Shadow', cursive",
+  "Bungee Shade": "'Bungee Shade', cursive",
+  "Fredericka": "'Fredericka the Great', cursive",
+  "Rubik Doodle Shadow": "'Rubik Doodle Shadow', cursive",
+  "Sacramento": "'Sacramento', cursive",
+  "Shadows Into Light": "'Shadows Into Light', cursive",
+  "Rollerscript Rough": "'Rollerscript Rough', cursive",
+  "DK Cool Crayon": "'DK Cool Crayon', cursive",
+  "DK Crayon Crumble": "'DK Crayon Crumble', cursive",
+  "Eraser": "'Eraser', cursive",
+  "Colored Crayons": "'Colored Crayons', cursive",
+  "Clouds of Despair": "'Clouds of Despair LSF', cursive",
+  "System": "system-ui, sans-serif",
+};
+
+const wallText = {
+  blend: "multiply",
+  color: "#3b3028",
+  datesLeft: 19, datesTop: 49.5, datesFontSize: 1.1, datesLineHeight: 1.2, datesFont: "Permanent Marker",
+  membersLeft: 48, membersTop: 42, membersFontSize: 0.75, membersLineHeight: 1.2, membersFont: "Caveat",
+  rightLeft: 85, rightTop: 23, rightFontSize: 0.7, rightLineHeight: 1.2, rightFont: "Caveat",
+  rightTRx: 0, rightTRy: 0, rightBRx: 0, rightBRy: 0, rightDebug: false,
+};
+
+// Compute CSS matrix3d for corner-pin distortion
+// TL stays fixed, TR and BR get offset
+function cornerPinMatrix(w, h, trx, try_, brx, bry) {
+  // Source: (0,0) (w,0) (0,h) (w,h)
+  // Dest:   (0,0) (w+trx, try_) (0,h) (w+brx, h+bry)
+  const x0=0, y0=0;
+  const x1=w+trx, y1=try_;
+  const x2=0, y2=h;
+  const x3=w+brx, y3=h+bry;
+
+  // Solve perspective transform from unit square to quad
+  const dx1 = x1 - x3, dx2 = x2 - x3, dx3 = x0 - x1 + x3 - x2;
+  const dy1 = y1 - y3, dy2 = y2 - y3, dy3 = y0 - y1 + y3 - y2;
+  const det = dx1 * dy2 - dx2 * dy1;
+  if (Math.abs(det) < 1e-10) return "none";
+  const g = (dx3 * dy2 - dx2 * dy3) / det;
+  const h_ = (dx1 * dy3 - dx3 * dy1) / det;
+  const a = x1 - x0 + g * x1;
+  const b = x2 - x0 + h_ * x2;
+  const c = x0;
+  const d = y1 - y0 + g * y1;
+  const e = y2 - y0 + h_ * y2;
+  const f = y0;
+
+  // Map from pixel coords: divide by w,h
+  // matrix3d columns (transposed for CSS)
+  return `matrix3d(${a/w}, ${d/w}, 0, ${g/w}, ${b/h}, ${e/h}, 0, ${h_/h}, 0, 0, 1, 0, ${c}, ${f}, 0, 1)`;
+}
+
+function syncWallText() {
+  const allText = [tourDatesEl, bandMembersEl, rightWallEl].filter(Boolean);
+  allText.forEach(el => {
+    el.style.mixBlendMode = wallText.blend;
+    el.style.color = wallText.color;
+  });
+
+  if (tourDatesEl) {
+    tourDatesEl.style.left = wallText.datesLeft + "%";
+    tourDatesEl.style.top = wallText.datesTop + "%";
+    tourDatesEl.querySelector(".wall-text__heading").style.fontSize = wallText.datesFontSize + "em";
+    tourDatesEl.style.lineHeight = wallText.datesLineHeight;
+    tourDatesEl.style.fontFamily = fontOptions[wallText.datesFont];
+  }
+  if (bandMembersEl) {
+    bandMembersEl.style.left = wallText.membersLeft + "%";
+    bandMembersEl.style.top = wallText.membersTop + "%";
+    bandMembersEl.style.fontSize = wallText.membersFontSize + "em";
+    bandMembersEl.style.lineHeight = wallText.membersLineHeight;
+    bandMembersEl.style.fontFamily = fontOptions[wallText.membersFont];
+  }
+  if (rightWallEl) {
+    rightWallEl.style.left = wallText.rightLeft + "%";
+    rightWallEl.style.top = wallText.rightTop + "%";
+    rightWallEl.style.fontSize = wallText.rightFontSize + "em";
+    rightWallEl.style.lineHeight = wallText.rightLineHeight;
+    rightWallEl.style.fontFamily = fontOptions[wallText.rightFont];
+    // Corner-pin transform using matrix3d
+    // Source corners: TL(0,0) TR(w,0) BL(0,h) BR(w,h)
+    // Offset TR and BR by user values (in % of element size)
+    const el = rightWallEl;
+    const w = el.offsetWidth || 100;
+    const h = el.offsetHeight || 100;
+    const trx = wallText.rightTRx / 100 * w;
+    const try_ = wallText.rightTRy / 100 * h;
+    const brx = wallText.rightBRx / 100 * w;
+    const bry = wallText.rightBRy / 100 * h;
+    const t = cornerPinMatrix(w, h, trx, try_, brx, bry);
+    rightWallEl.style.transformOrigin = "0 0";
+    rightWallEl.style.transform = t;
+    rightWallEl.style.outline = wallText.rightDebug ? "1px solid red" : "none";
+    rightWallEl.style.background = wallText.rightDebug ? "rgba(255,0,0,0.08)" : "none";
+  }
+}
+
+const fText = pane.addFolder({ title: "Wall Text", expanded: false });
+const fontNames = Object.keys(fontOptions);
+const fontOpts = Object.fromEntries(fontNames.map(f => [f, f]));
+
+// Global
+fText.addBinding(wallText, "blend", { options: Object.fromEntries(blendModes.map(m => [m, m])), label: "Blend Mode" }).on("change", syncWallText);
+fText.addBinding(wallText, "color", { label: "Color" }).on("change", syncWallText);
+
+// Dates
+const fDates = fText.addFolder({ title: "Dates", expanded: false });
+fDates.addBinding(wallText, "datesLeft", { min: 0, max: 60, step: 0.5, label: "Left %" }).on("change", syncWallText);
+fDates.addBinding(wallText, "datesTop", { min: 20, max: 80, step: 0.5, label: "Top %" }).on("change", syncWallText);
+fDates.addBinding(wallText, "datesFontSize", { min: 0.5, max: 3.0, step: 0.1, label: "Size" }).on("change", syncWallText);
+fDates.addBinding(wallText, "datesLineHeight", { min: 0.5, max: 3.0, step: 0.05, label: "Line H" }).on("change", syncWallText);
+fDates.addBinding(wallText, "datesFont", { options: fontOpts, label: "Font" }).on("change", syncWallText);
+
+// Members
+const fMembers = fText.addFolder({ title: "Members", expanded: false });
+fMembers.addBinding(wallText, "membersLeft", { min: 40, max: 95, step: 0.5, label: "Left %" }).on("change", syncWallText);
+fMembers.addBinding(wallText, "membersTop", { min: 10, max: 70, step: 0.5, label: "Top %" }).on("change", syncWallText);
+fMembers.addBinding(wallText, "membersFontSize", { min: 0.3, max: 2.0, step: 0.05, label: "Size" }).on("change", syncWallText);
+fMembers.addBinding(wallText, "membersLineHeight", { min: 0.5, max: 3.0, step: 0.05, label: "Line H" }).on("change", syncWallText);
+fMembers.addBinding(wallText, "membersFont", { options: fontOpts, label: "Font" }).on("change", syncWallText);
+
+// Right
+const fRight = fText.addFolder({ title: "Right Wall", expanded: false });
+fRight.addBinding(wallText, "rightLeft", { min: 60, max: 98, step: 0.5, label: "Left %" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightTop", { min: 5, max: 60, step: 0.5, label: "Top %" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightFontSize", { min: 0.3, max: 2.0, step: 0.05, label: "Size" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightLineHeight", { min: 0.5, max: 3.0, step: 0.05, label: "Line H" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightFont", { options: fontOpts, label: "Font" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightTRx", { min: -80, max: 80, step: 1, label: "Top-Right X%" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightTRy", { min: -80, max: 80, step: 1, label: "Top-Right Y%" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightBRx", { min: -80, max: 80, step: 1, label: "Bot-Right X%" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightBRy", { min: -80, max: 80, step: 1, label: "Bot-Right Y%" }).on("change", syncWallText);
+fRight.addBinding(wallText, "rightDebug", { label: "Debug Box" }).on("change", syncWallText);
+
+syncWallText();
+
+// --- Organic hand-written effect ---
+// Wrap each character in a span with slight random tilt,
+// and offset each line slightly in X
+function applyHandwrittenEffect() {
+  document.querySelectorAll(".wall-text").forEach(container => {
+    // Process all text nodes inside <p>, <li>, <h2>
+    container.querySelectorAll("p, li, h2").forEach((el, lineIdx) => {
+      // Skip if already processed
+      if (el.dataset.handwritten) return;
+      el.dataset.handwritten = "1";
+
+      // Slight random X offset per line
+      const lineOffset = (Math.random() - 0.5) * 3;
+      el.style.marginLeft = lineOffset + "px";
+
+      // Wrap each text character in a span with random tilt
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+      textNodes.forEach(node => {
+        const text = node.textContent;
+        if (!text.trim()) return;
+        const frag = document.createDocumentFragment();
+        for (const ch of text) {
+          if (ch === " ") {
+            frag.appendChild(document.createTextNode(" "));
+          } else {
+            const span = document.createElement("span");
+            span.textContent = ch;
+            const rot = (Math.random() - 0.5) * 4; // ±2 degrees
+            const ty = (Math.random() - 0.5) * 1.5; // ±0.75px vertical jitter
+            span.style.display = "inline-block";
+            span.style.transform = `rotate(${rot}deg) translateY(${ty}px)`;
+            frag.appendChild(span);
+          }
+        }
+        node.parentNode.replaceChild(frag, node);
+      });
+    });
+  });
+}
+
+applyHandwrittenEffect();
+
 // --- Hotspot Layout Editor ---
-const fLayout = pane.addFolder({ title: "Layout Editor" });
+const fLayout = pane.addFolder({ title: "Layout Editor", expanded: false });
 const editState = { editMode: false };
 fLayout.addBinding(editState, "editMode", { label: "Edit Hotspots" }).on("change", (e) => {
   editMode = e.value;
