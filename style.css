@@ -13,46 +13,60 @@
 
 /* --- Floating Navigation --- */
 .floating-nav {
+  --nav-bg: rgba(15, 15, 15, 0.6);
+  --nav-text: rgba(255, 255, 255, 0.7);
+  --nav-text-hover: #fff;
+  --nav-hover-bg: rgba(255, 255, 255, 0.1);
+  --nav-active-bg: rgba(255, 255, 255, 0.15);
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --nav-radius: 0.6rem;
+  --nav-blur: 16px;
+  --nav-font-size: 0.75rem;
+  --nav-padding: 0.65rem 1.1rem;
+  --nav-letter-spacing: 0.04em;
+
   position: fixed;
-  top: 1.2rem;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
   display: flex;
-  gap: 0.25rem;
-  padding: 0.3rem;
-  background: rgba(15, 15, 15, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 0;
+  padding: 0;
+  background: var(--nav-bg);
+  backdrop-filter: blur(var(--nav-blur));
+  -webkit-backdrop-filter: blur(var(--nav-blur));
+  border-radius: 0 0 var(--nav-radius) var(--nav-radius);
+  border: 1px solid var(--nav-border);
+  border-top: none;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .floating-nav button {
   pointer-events: auto;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 0.75rem;
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--nav-font-size);
   font-weight: 500;
-  letter-spacing: 0.04em;
-  padding: 0.45rem 1rem;
-  border-radius: 1.5rem;
+  letter-spacing: var(--nav-letter-spacing);
+  padding: var(--nav-padding);
+  border-radius: 0;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: none;
   white-space: nowrap;
 }
 
 .floating-nav button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--nav-hover-bg);
+  color: var(--nav-text-hover);
 }
 
 .floating-nav button.active {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: var(--nav-active-bg);
+  color: var(--nav-text-hover);
 }
 
 html,
@@ -143,7 +157,7 @@ body {
   transform: translate(-50%, -50%);
   z-index: 50;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-  transition: transform 0.1s ease;
+  transition: none;
 }
 
 .anchor-dot:hover {
@@ -160,7 +174,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
+  transition: none;
 }
 
 .hotspot-icon {
@@ -218,7 +232,7 @@ body {
   border-radius: 50%;
   background: transparent;
   z-index: 5;
-  transition: background 0.4s ease, box-shadow 0.4s ease;
+  transition: none;
   pointer-events: none;
 }
 
@@ -237,7 +251,7 @@ body {
   border-radius: 50%;
   background: transparent;
   z-index: 5;
-  transition: background 0.4s ease, box-shadow 0.4s ease;
+  transition: none;
   pointer-events: none;
 }
 
@@ -268,7 +282,7 @@ body {
   cursor: pointer;
   pointer-events: auto;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: none;
 }
 
 .tv-screen:hover .tv-timeline {
@@ -280,7 +294,7 @@ body {
   width: 0%;
   background: rgba(255, 255, 255, 0.7);
   border-radius: 2px;
-  transition: width 0.2s linear;
+  transition: none;
 }
 
 /* Volume indicator (right edge) */
@@ -295,7 +309,7 @@ body {
   z-index: 4;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: none;
 }
 
 .tv-volume.visible {
@@ -309,7 +323,7 @@ body {
   height: 100%;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 2px;
-  transition: height 0.15s ease;
+  transition: none;
 }
 
 .tv-static {
@@ -390,6 +404,7 @@ body {
 .tv-static canvas {
   width: 100%;
   height: 100%;
+  image-rendering: pixelated;
 }
 
 /* Lamp */
@@ -403,7 +418,7 @@ body {
   pointer-events: none;
   border-radius: 50%;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: none;
 }
 
 .speaker--left {
@@ -580,14 +595,14 @@ body {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: none;
 }
 
 .hotspot--book:hover .tooltip {
   opacity: 1;
 }
 
-/* --- IKEA-style info dots --- */
+/* --- Info dots --- */
 .info-dot {
   position: absolute;
   z-index: 20;
@@ -596,27 +611,156 @@ body {
 }
 
 .info-dot__circle {
-  width: 1.6em;
-  height: 1.6em;
+  position: relative;
+  transition: none;
+}
+
+/* Larger invisible hit area */
+.info-dot__circle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3em;
+  height: 3em;
   border-radius: 50%;
-  background: #fff;
-  border: 0.18em solid rgba(0, 0, 0, 0.35);
-  transition: transform 0.15s ease;
 }
 
 .info-dot:hover .info-dot__circle {
-  transform: scale(1.1);
+  transform: scale(1.15);
 }
 
-.info-dot.active .info-dot__circle {
-  background: rgba(255, 255, 255, 0.7);
+/* === Style: Dot (clean minimal with pulse) === */
+.hotspot-style-dot .info-dot__circle {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: #fff;
+  border: 0.1em solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+  animation: dotPulse 2.5s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  50% { box-shadow: 0 0 0 0.5em rgba(255, 255, 255, 0); }
+}
+.hotspot-style-dot .info-dot.active .info-dot__circle {
+  background: rgba(255, 255, 255, 0.6);
+  animation: none;
+}
+
+/* === Style: Pin (thumbtack) === */
+.hotspot-style-pin .info-dot__circle {
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e85d4a, #b33425);
+  box-shadow: 0.05em 0.1em 0.2em rgba(0,0,0,0.4), inset 0 -0.05em 0.1em rgba(0,0,0,0.2);
+  border: none;
+}
+.hotspot-style-pin .info-dot__circle::after {
+  content: "";
+  position: absolute;
+  bottom: -0.35em;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0.08em;
+  height: 0.4em;
+  background: linear-gradient(to bottom, #888, #666);
+  border-radius: 0 0 0.02em 0.02em;
+}
+.hotspot-style-pin .info-dot.active .info-dot__circle {
+  background: radial-gradient(circle at 35% 35%, #ff7a6a, #e85d4a);
+}
+
+/* === Style: Pencil circle (hand-drawn) === */
+.hotspot-style-pencil .info-dot__circle {
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  background: transparent;
+  border: 0.12em solid rgba(60, 50, 40, 0.5);
+  border-top-color: rgba(60, 50, 40, 0.3);
+  border-right-color: rgba(60, 50, 40, 0.6);
+  transform: rotate(-5deg);
+  filter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='r'%3E%3CfeTurbulence baseFrequency='0.5' numOctaves='2'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='1'/%3E%3C/filter%3E%3C/svg%3E#r");
+}
+.hotspot-style-pencil .info-dot.active .info-dot__circle {
+  border-color: rgba(60, 50, 40, 0.8);
+}
+
+/* === Style: Glow (warm light leak) === */
+.hotspot-style-glow .info-dot__circle {
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 210, 140, 0.6) 0%, rgba(255, 180, 100, 0.2) 40%, transparent 70%);
+  border: none;
+  animation: glowPulse 3s ease-in-out infinite alternate;
+}
+@keyframes glowPulse {
+  0% { opacity: 0.5; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1.1); }
+}
+.hotspot-style-glow .info-dot.active .info-dot__circle {
+  background: radial-gradient(circle, rgba(255, 210, 140, 0.8) 0%, rgba(255, 180, 100, 0.3) 40%, transparent 70%);
+  animation: none;
+}
+
+/* === Style: Asterisk (chalk mark) === */
+.hotspot-style-asterisk .info-dot__circle {
+  width: 1.2em;
+  height: 1.2em;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  color: rgba(60, 50, 40, 0.6);
+  font-family: "DK Cool Crayon", "Caveat", cursive;
+  line-height: 1;
+}
+.hotspot-style-asterisk .info-dot__circle::after {
+  content: "✳";
+  font-size: 1.2em;
+}
+.hotspot-style-asterisk .info-dot:hover .info-dot__circle {
+  color: rgba(60, 50, 40, 0.9);
+}
+.hotspot-style-asterisk .info-dot.active .info-dot__circle {
+  color: rgba(60, 50, 40, 0.9);
+}
+
+/* === Style: Leaf (botanical sprout) === */
+.hotspot-style-leaf .info-dot__circle {
+  width: 1em;
+  height: 1em;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hotspot-style-leaf .info-dot__circle::after {
+  content: "🌿";
+  font-size: 0.9em;
+  filter: drop-shadow(0 0.05em 0.1em rgba(0,0,0,0.3));
+  transition: none;
+}
+.hotspot-style-leaf .info-dot:hover .info-dot__circle::after {
+  transform: scale(1.2) rotate(10deg);
+}
+.hotspot-style-leaf .info-dot.active .info-dot__circle::after {
+  transform: scale(1.3);
 }
 
 .info-dot__panel {
   position: absolute;
-  top: 50%;
-  left: calc(100% + 0.8em);
-  transform: translateY(-50%) translateX(4px);
+  bottom: calc(100% + 1.2em);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
   background: #fff;
   color: #111;
   padding: 1.2em 1.4em;
@@ -628,13 +772,13 @@ body {
   line-height: 1.5;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: none;
 }
 
 .info-dot.active .info-dot__panel {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(-50%) translateX(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 .info-dot__panel h3 {
