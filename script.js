@@ -1145,42 +1145,25 @@ document.addEventListener("keydown", (e) => {
 // ============================================================
 // Portal — Generated image behind the wall, mouse-following mask
 // ============================================================
-const portal = { size: 10 };
+const portal = { size: 5 };
 const portalBg = document.getElementById("portalBg");
 
 // Random portal background on each page load
 const portalImages = [
-  "assets/portal-1.png",
   "assets/portal-2.png",
   "assets/portal-3.png",
-  "assets/portal-4.png",
   "assets/portal-5.png",
   "assets/portal-6.png",
-  "assets/portal-7.jpg",   // dramatic B&W
-  "assets/portal-8.jpg",   // soft B&W
-  "assets/portal-9.jpg",   // solarized
-  "assets/portal-10.jpg",  // oil paint
-  "assets/portal-11.jpg",  // posterized
-  "assets/portal-12.jpg",  // embossed texture
-  "assets/portal-13.jpg",  // neon glow
-  "assets/portal-14.jpg",  // dreamy glow
-  "assets/portal-15.jpg",  // pencil sketch
   "assets/portal-23.png",
-  "assets/portal-24.png",
   "assets/portal-25.png",
-  "assets/portal-26.png",
   "assets/portal-27.png",
   "assets/portal-28.png",
-  "assets/portal-29.png",
   "assets/portal-30.png",
   "assets/portal-31.png",
   "assets/portal-32.png",
-  "assets/portal-33.png",
   "assets/portal-34.png",
   "assets/portal-35.png",
   "assets/portal-36.png",
-  "assets/portal-37.png",
-  "assets/portal-38.png",
   "assets/portal-39.png",
   "assets/portal-40.png",
   "assets/portal-41.png",
@@ -1196,7 +1179,7 @@ scene.addEventListener("mousedown", (e) => {
   if (portalRevealed) {
     // Already revealed — click to shrink back and cycle
     portalRevealed = false;
-    portal.size = 10;
+    portal.size = 5;
     portalIdx = (portalIdx + 1) % portalImages.length;
     portalBg.src = portalImages[portalIdx];
     syncPortalMask();
@@ -1235,7 +1218,7 @@ let portalMouseX = 50, portalMouseY = 50;
 
 function syncPortalMask() {
   const r = portal.size;
-  const mask = `radial-gradient(circle ${r}vw at ${portalMouseX}% ${portalMouseY}%, transparent 0%, transparent 70%, black 100%)`;
+  const mask = `radial-gradient(circle ${r}vw at ${portalMouseX}% ${portalMouseY}%, transparent 0%, transparent 85%, black 100%)`;
   bgImage.style.webkitMaskImage = mask;
   bgImage.style.maskImage = mask;
   bgImageDusk.style.webkitMaskImage = mask;
@@ -1262,8 +1245,9 @@ fPortal.addBinding(portal, "size", { min: 2, max: 30, step: 0.5, label: "Size (v
 const infoDots = {
   band:    { left: 50, top: 30.5, el: document.getElementById("infoBand") },
   contact: { left: 20, top: 38, el: document.getElementById("infoContact") },
-  vinyl:   { left: 73, top: 52, el: document.getElementById("infoVinyl") },
-  listen:  { left: 55.5, top: 69.5, el: document.getElementById("infoListen") },
+  vinyl:     { left: 73, top: 52, el: document.getElementById("infoVinyl") },
+  closeaway: { left: 90, top: 69, el: document.getElementById("infoCloseAway") },
+  listen:    { left: 55.5, top: 69.5, el: document.getElementById("infoListen") },
   watch:   { left: 43.5, top: 66.5, el: document.getElementById("infoWatch") },
 };
 
