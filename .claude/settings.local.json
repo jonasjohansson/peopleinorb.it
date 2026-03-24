@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__google-docs__readSpreadsheet",
+      "mcp__google-docs__addSheet",
+      "mcp__google-docs__writeSpreadsheet",
+      "mcp__airtable__list_bases",
+      "mcp__airtable__list_tables",
+      "mcp__airtable__list_records",
+      "mcp__airtable__update_records",
+      "mcp__google-docs__formatCells",
+      "mcp__google-docs__setDropdownValidation",
+      "mcp__google-docs__freezeRowsAndColumns",
+      "mcp__google-docs__getFolderInfo",
+      "mcp__google-docs__listFolderContents",
+      "mcp__google-docs__clearRange",
+      "mcp__google-docs__appendRows",
+      "mcp__google-docs__createSpreadsheet"
+    ]
+  }
+}
