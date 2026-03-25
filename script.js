@@ -466,6 +466,7 @@ function syncLed() {
   tvLedEl.style.height = led.size + "px";
 }
 
+syncLed();
 const fLed = pane.addFolder({ title: "LEDs", expanded: false });
 fLed.addBinding(led, "left", { min: 10, max: 50, step: 0.1, label: "TV Left %" }).on("change", syncLed);
 fLed.addBinding(led, "top", { min: 80, max: 98, step: 0.1, label: "TV Top %" }).on("change", syncLed);
@@ -482,6 +483,7 @@ function syncHifiLed() {
   hifiLedEl.style.height = hifi.size + "px";
 }
 
+syncHifiLed();
 fLed.addBinding(hifi, "left", { min: 40, max: 80, step: 0.1, label: "Hifi Left %" }).on("change", syncHifiLed);
 fLed.addBinding(hifi, "top", { min: 60, max: 95, step: 0.1, label: "Hifi Top %" }).on("change", syncHifiLed);
 fLed.addBinding(hifi, "size", { min: 2, max: 12, step: 0.1, label: "Hifi Size px" }).on("change", syncHifiLed);
@@ -656,6 +658,7 @@ function setTVMode(mode) {
   tvSpotify.style.height = "100%";
   tvSpotify.src = "";
   tvScreen.style.pointerEvents = "none";
+  tvInteract.style.display = "";
   tvTimeline.style.display = "none";
 
   // Hide YouTube player div
@@ -686,6 +689,7 @@ function setTVMode(mode) {
       tvSpotify.classList.add("active");
       tvSpotify.style.height = "152%";
       tvScreen.style.pointerEvents = "auto";
+      tvInteract.style.display = "none";
       break;
     case "youtube":
       if (ytEl) {
@@ -804,7 +808,6 @@ turntableBtn.addEventListener("click", () => {
   if (editMode) return;
 
   if (!isPlaying) {
-    // First click: start playing, show first album
     isPlaying = true;
     currentAlbumIndex = 0;
     setTVMode("spotify");
@@ -812,13 +815,9 @@ turntableBtn.addEventListener("click", () => {
     speakerLeft.classList.add("pulsing");
     speakerRight.classList.add("pulsing");
     document.getElementById("hifiLed").classList.add("on");
-    spawnNote();
-    noteInterval = setInterval(spawnNote, 800);
   } else {
-    // Subsequent clicks: cycle to next album
     currentAlbumIndex = (currentAlbumIndex + 1) % SPOTIFY_ALBUMS.length;
-    setTVMode("spotify"); // reload with new album
-    spawnNote(); // visual feedback
+    setTVMode("spotify");
   }
 });
 
@@ -829,9 +828,30 @@ function stopPlaying() {
   speakerLeft.classList.remove("pulsing");
   speakerRight.classList.remove("pulsing");
   document.getElementById("hifiLed").classList.remove("on");
-  clearInterval(noteInterval);
-  noteInterval = null;
 }
+
+// --- Vinyl click: start Spotify and scroll to TV ---
+document.getElementById("vinylBtn").addEventListener("click", () => {
+  if (editMode) return;
+  if (!isPlaying) {
+    isPlaying = true;
+    currentAlbumIndex = 0;
+    setTVMode("spotify");
+    turntableBtn.classList.add("playing");
+    speakerLeft.classList.add("pulsing");
+    speakerRight.classList.add("pulsing");
+    document.getElementById("hifiLed").classList.add("on");
+  }
+  const tv = hotspots.tv;
+  const { renderedW, renderedH } = getImageBounds();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const targetX = ((tv.left + tv.width / 2) / 100) * renderedW;
+  const targetY = ((tv.top + tv.height / 2) / 100) * renderedH;
+  const scrollX = Math.max(0, Math.min(targetX - vw / 2, renderedW - vw));
+  const scrollY = Math.max(0, Math.min(targetY - vh / 2, renderedH - vh));
+  scene.scrollTo({ left: scrollX, top: scrollY, behavior: "smooth" });
+});
 
 // --- Music Notes ---
 const noteChars = ["♪", "♫", "♩", "♬"];
