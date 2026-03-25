@@ -982,6 +982,12 @@ document.querySelectorAll(".info-dot").forEach((dot) => {
     document.querySelectorAll(".info-dot.active").forEach((d) => d.classList.remove("active"));
     if (!wasActive) {
       dot.classList.add("active");
+      // Sync nav highlight
+      const dotId = dot.id;
+      const navTarget = Object.keys(navTargets).find((k) => navTargets[k].dot === dotId);
+      document.querySelectorAll(".floating-nav button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.target === navTarget);
+      });
 
       // Position panel based on proximity to edges
       const panel = dot.querySelector(".info-dot__panel");
@@ -1032,6 +1038,7 @@ document.querySelectorAll(".info-dot").forEach((dot) => {
 
 document.addEventListener("click", () => {
   document.querySelectorAll(".info-dot.active").forEach((d) => d.classList.remove("active"));
+  document.querySelectorAll(".floating-nav button.active").forEach((b) => b.classList.remove("active"));
 });
 
 // Hotspot style switcher
