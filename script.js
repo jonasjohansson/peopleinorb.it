@@ -950,7 +950,7 @@ const portalImages = [
 let portalIdx = Math.floor(Math.random() * portalImages.length);
 portalBg.src = portalImages[portalIdx];
 
-let portalActive = true;
+let portalActive = false;
 
 // Arrow up/down to cycle portal images
 document.addEventListener("keydown", (e) => {

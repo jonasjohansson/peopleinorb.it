@@ -11,8 +11,8 @@
   --panel-link: #111;
   --panel-heading: #111;
   --panel-border: rgba(0, 0, 0, 0.12);
-  --panel-padding: 1.2em 1.4em;
-  --panel-radius: 0.4em;
+  --panel-padding: 0.8em 1em;
+  --panel-radius: 0.25em;
   --panel-font-size: 1em;
   --panel-line-height: 1.5;
   --panel-max-width: 26em;
@@ -802,7 +802,7 @@ body {
   left: calc(100% + 0.3em);
   top: 50%;
   transform: translateY(-50%);
-  font-size: 0.55em;
+  font-size: 0.65em;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: #fff;
