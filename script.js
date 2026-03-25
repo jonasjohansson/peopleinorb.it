@@ -41,6 +41,7 @@ const staticCanvas = document.getElementById("staticCanvas");
 const lampBtn = document.getElementById("lampBtn");
 const speakerLeft = document.getElementById("speakerLeft");
 const speakerRight = document.getElementById("speakerRight");
+const tvInteract = document.getElementById("tvInteract");
 const tvScreen = document.getElementById("tvScreen");
 
 // --- FX Parameters ---
@@ -743,7 +744,6 @@ if (tvPlayBtn) {
 }
 
 // --- TV screen overlay: click to play/pause YouTube ---
-const tvInteract = document.getElementById("tvInteract");
 tvInteract.addEventListener("click", () => {
   if (editMode) return;
   if (tvMode === "logo") {
