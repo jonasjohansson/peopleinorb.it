@@ -27,7 +27,7 @@
 /* --- Floating Navigation --- */
 .floating-nav {
   --nav-bg: rgba(255, 255, 255, 0.08);
-  --nav-text: rgba(255, 255, 255, 0.5);
+  --nav-text: rgba(255, 255, 255, 0.8);
   --nav-text-hover: rgba(255, 255, 255, 0.9);
   --nav-hover-bg: rgba(255, 255, 255, 0.1);
   --nav-active-bg: rgba(255, 255, 255, 0.15);
