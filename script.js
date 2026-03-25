@@ -1047,7 +1047,7 @@ const textTransforms = { "none": "none", "uppercase": "uppercase", "lowercase": 
 const hotspotStyles = {
   style: "dot",
   navFont: "Analo Grotesk", navFontSize: 0.95, navTransform: "uppercase",
-  navTextColor: "#ffab41", navBgColor: "#4e4e4e", navBgOpacity: 0.0,
+  navTextColor: "#ffffffcc", navBgColor: "#ffffff", navBgOpacity: 0.08,
   panelFont: "Analo Grotesk", panelHeadingFont: "Analo Grotesk",
 };
 const styleOptions = {
