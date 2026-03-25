@@ -198,13 +198,6 @@ body {
   height: var(--img-h);
 }
 
-/* Hotspot base */
-  transform: translate(-50%, -50%);
-  z-index: 50;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-  transition: none;
-}
-
 .hotspot {
   position: absolute;
   border: none;
