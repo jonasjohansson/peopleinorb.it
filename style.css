@@ -814,6 +814,16 @@ body {
   margin-right: 0.8em;
 }
 
+.info-dot__panel .links--grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3em 0.8em;
+}
+
+.info-dot__panel .links--grid a {
+  margin-right: 0;
+}
+
 .info-dot__panel .members {
   margin-top: 0.4em;
 }
