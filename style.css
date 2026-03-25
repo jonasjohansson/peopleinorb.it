@@ -570,8 +570,12 @@ body {
 .info-dot {
   position: absolute;
   z-index: 20;
-  cursor: pointer;
+  cursor: default;
   transform: translate(-50%, -50%);
+}
+
+.info-dot__circle {
+  cursor: pointer;
 }
 
 .info-dot__circle {
