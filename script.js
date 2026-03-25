@@ -381,6 +381,18 @@ requestAnimationFrame(render);
 // ============================================================
 const pane = new Pane({ title: "Post FX", expanded: false });
 
+// Hide Tweakpane by default, toggle with Ctrl/Cmd+G
+{
+  const container = pane.element.parentElement;
+  container.style.display = "none";
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "g") {
+      e.preventDefault();
+      container.style.display = container.style.display === "none" ? "" : "none";
+    }
+  });
+}
+
 // Make Tweakpane draggable
 {
   const container = pane.element.parentElement;
