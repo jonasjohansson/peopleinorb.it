@@ -22,18 +22,26 @@
       <!-- Fantasy world behind the wall -->
       <img src="" class="portal-bg" id="portalBg" alt="" />
 
-      <img
-        src="assets/pio.jpg"
-        alt="People in Orbit"
-        class="bg-image"
-        id="bgImage"
-      />
-      <img
-        src="assets/pio-dusk.jpg"
-        alt=""
-        class="bg-image bg-image--dusk"
-        id="bgImageDusk"
-      />
+      <picture>
+        <source srcset="assets/pio.avif" type="image/avif" />
+        <source srcset="assets/pio.webp" type="image/webp" />
+        <img
+          src="assets/pio.jpg"
+          alt="People in Orbit"
+          class="bg-image"
+          id="bgImage"
+        />
+      </picture>
+      <picture>
+        <source srcset="assets/pio-dusk.avif" type="image/avif" />
+        <source srcset="assets/pio-dusk.webp" type="image/webp" />
+        <img
+          src="assets/pio-dusk.jpg"
+          alt=""
+          class="bg-image bg-image--dusk"
+          id="bgImageDusk"
+        />
+      </picture>
 
       <!-- Post-processing FX canvas -->
       <canvas class="fx-canvas" id="fxCanvas"></canvas>

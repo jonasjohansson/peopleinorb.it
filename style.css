@@ -130,6 +130,10 @@ body {
 }
 
 /* Background image — sized by JS to fill viewport, overflows for scrolling */
+.scene > picture {
+  display: contents;
+}
+
 .bg-image {
   position: absolute;
   top: 0;
