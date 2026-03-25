@@ -1,0 +1,73 @@
+{
+  "image": {
+    "width": 6144,
+    "height": 4098
+  },
+  "fx": {
+    "vignette": 0.4,
+    "vignetteSize": 0.45,
+    "tintR": 1.0,
+    "tintG": 0.95,
+    "tintB": 0.9,
+    "brightness": 1.24,
+    "contrast": 1.11,
+    "saturation": 1.0
+  },
+  "tvGrade": {
+    "brightness": 1.37,
+    "contrast": 1.41,
+    "saturation": 1.04,
+    "warmth": 0.07,
+    "hueRotate": 0,
+    "opacity": 0.69
+  },
+  "hotspots": {
+    "tv":        { "left": 14.7, "top": 67.7, "width": 28.0, "height": 23.5 },
+    "turntable": { "left": 48.0, "top": 64.0, "width": 18.1, "height": 6.2 },
+    "lamp":      { "left": 73.7, "top": 29.5, "width": 10.8, "height": 15.5 },
+    "speakerL":  { "left": 47.7, "top": 76.5, "width": 7.3,  "height": 18.1 },
+    "speakerR":  { "left": 63.4, "top": 76.1, "width": 7.6,  "height": 18.4 }
+  },
+  "leds": {
+    "tv":   { "left": 28.8, "top": 92.2, "size": 5.0 },
+    "hifi": { "left": 57.4, "top": 83.5, "size": 5.5 }
+  },
+  "infoDots": {
+    "band":      { "left": 53.2, "top": 38.4 },
+    "contact":   { "left": 21.8, "top": 30.3 },
+    "vinyl":     { "left": 72.5, "top": 51.5 },
+    "closeaway": { "left": 82.6, "top": 68.5 },
+    "listen":    { "left": 54.5, "top": 68.0 },
+    "watch":     { "left": 28.8, "top": 66.6 },
+    "poster":    { "left": 89.1, "top": 31.1 }
+  },
+  "style": {
+    "hotspotStyle": "dot",
+    "navFont": "'Analo Grotesk-Trial', sans-serif",
+    "navFontSize": "0.95rem",
+    "navTransform": "uppercase",
+    "panelFont": "'Analo Grotesk-Trial', sans-serif"
+  },
+  "spotify": [
+    { "id": "39Hqg9HOVrra5TX0mdsj4N", "type": "artist", "name": "All Tracks" },
+    { "id": "6RRIzc0xLxyFyA3TA5XZwv", "type": "album", "name": "Close/Away" },
+    { "id": "2ngfaUxYwwBPgboyQ8sdi8", "type": "album", "name": "Cycle 3" },
+    { "id": "5bKbT2mKgfnFd0QPCk8elA", "type": "album", "name": "Spinning Downwards" },
+    { "id": "5EYKwy9uGewQ6vmZvrohWv", "type": "album", "name": "Synchronized Whalestuff" },
+    { "id": "6vH855OQUkdEdJAdcNIszT", "type": "album", "name": "Curved Sunlight" },
+    { "id": "4yFyaG9UktAjKeKx2z2x1e", "type": "album", "name": "Close/Away (Galaxy of Wires)" }
+  ],
+  "youtubeVideoId": "GH_SJYrT8EM",
+  "portalImages": [
+    "assets/portal-1.jpg", "assets/portal-2.jpg", "assets/portal-3.jpg",
+    "assets/portal-4.jpg", "assets/portal-5.jpg", "assets/portal-6.jpg",
+    "assets/portal-7.jpg", "assets/portal-8.jpg", "assets/portal-9.jpg",
+    "assets/portal-10.jpg", "assets/portal-11.jpg", "assets/portal-12.jpg",
+    "assets/portal-13.jpg", "assets/portal-14.jpg", "assets/portal-15.jpg",
+    "assets/portal-16.jpg", "assets/portal-17.jpg", "assets/portal-18.jpg",
+    "assets/portal-19.jpg", "assets/portal-20.jpg", "assets/portal-21.jpg",
+    "assets/portal-22.jpg", "assets/portal-23.jpg", "assets/portal-24.jpg",
+    "assets/portal-25.jpg", "assets/portal-26.jpg", "assets/portal-27.jpg",
+    "assets/portal-28.jpg", "assets/portal-29.jpg", "assets/portal-30.jpg"
+  ]
+}

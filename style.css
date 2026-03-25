@@ -94,16 +94,19 @@
 
 @media (max-width: 480px) {
   .floating-nav {
-    --nav-font-size: 0.55rem;
-    --nav-padding: 0.45rem 0.45rem;
+    --nav-font-size: 0.7rem;
+    --nav-padding: 0.5rem 0.5rem;
     --nav-letter-spacing: 0;
+  }
+  .info-dot__panel {
+    font-size: 14px;
   }
 }
 
 @media (max-width: 360px) {
   .floating-nav {
-    --nav-font-size: 0.45rem;
-    --nav-padding: 0.4rem 0.3rem;
+    --nav-font-size: 0.6rem;
+    --nav-padding: 0.45rem 0.35rem;
   }
 }
 
@@ -187,11 +190,6 @@ body {
 }
 
 /* Tweakpane in top-right corner */
-.tp-dfwv {
-  z-index: 200 !important;
-}
-
-
 /* Hotspot layer — matches rendered image size/position exactly */
 .hotspot-layer {
   position: absolute;
@@ -200,24 +198,13 @@ body {
   height: var(--img-h);
 }
 
-/* Draggable corner anchors (edit mode) */
-.anchor-dot {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid;
+/* Hotspot base */
   transform: translate(-50%, -50%);
   z-index: 50;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
   transition: none;
 }
 
-.anchor-dot:hover {
-  transform: translate(-50%, -50%) scale(1.4);
-}
-
-/* Hotspot base */
 .hotspot {
   position: absolute;
   border: none;

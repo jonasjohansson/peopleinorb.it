@@ -1,5 +1,3 @@
-import { Pane } from "https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js";
-
 // --- Preload: fade in when main image is ready ---
 const bgImg = document.getElementById("bgImage");
 if (bgImg.complete) {
@@ -8,71 +6,58 @@ if (bgImg.complete) {
   bgImg.addEventListener("load", () => document.body.classList.remove("loading"));
 }
 
-// --- Constants ---
-const IMG_W = 6144;
-const IMG_H = 4098;
+// --- Load settings ---
+let settings;
+try {
+  const resp = await fetch("settings.json");
+  settings = await resp.json();
+} catch (e) {
+  console.error("Failed to load settings.json", e);
+}
+
+const IMG_W = settings.image.width;
+const IMG_H = settings.image.height;
 const IMG_RATIO = IMG_W / IMG_H;
+const fx = settings.fx;
+const tvGrade = settings.tvGrade;
+const SPOTIFY_ALBUMS = settings.spotify;
+const YOUTUBE_VIDEO_ID = settings.youtubeVideoId;
+const portalImages = settings.portalImages;
 
-const SPOTIFY_ALBUMS = [
-  { id: "39Hqg9HOVrra5TX0mdsj4N", type: "artist", name: "All Tracks" },
-  { id: "6RRIzc0xLxyFyA3TA5XZwv", type: "album", name: "Close/Away" },
-  { id: "2ngfaUxYwwBPgboyQ8sdi8", type: "album", name: "Cycle 3" },
-  { id: "5bKbT2mKgfnFd0QPCk8elA", type: "album", name: "Spinning Downwards" },
-  { id: "5EYKwy9uGewQ6vmZvrohWv", type: "album", name: "Synchronized Whalestuff" },
-  { id: "6vH855OQUkdEdJAdcNIszT", type: "album", name: "Curved Sunlight" },
-  { id: "4yFyaG9UktAjKeKx2z2x1e", type: "album", name: "Close/Away (Galaxy of Wires)" },
-];
 let currentAlbumIndex = 0;
-
 function getSpotifyEmbedUrl() {
   const a = SPOTIFY_ALBUMS[currentAlbumIndex];
   return `https://open.spotify.com/embed/${a.type}/${a.id}?utm_source=generator&theme=0`;
 }
 
-const YOUTUBE_VIDEO_ID = "GH_SJYrT8EM";
-
 // --- State ---
 let isPlaying = false;
-let isDark = false;
 
 // --- Elements ---
 const bgImage = document.getElementById("bgImage");
-const bgImageDusk = document.getElementById("bgImageDusk");
 const hotspotLayer = document.getElementById("hotspotLayer");
 const fxCanvas = document.getElementById("fxCanvas");
 const turntableBtn = document.getElementById("turntableBtn");
 const tvBtn = document.getElementById("tvBtn");
 const tvStatic = document.getElementById("tvStatic");
 const staticCanvas = document.getElementById("staticCanvas");
-const lampBtn = document.getElementById("lampBtn");
 const speakerLeft = document.getElementById("speakerLeft");
 const speakerRight = document.getElementById("speakerRight");
 const tvInteract = document.getElementById("tvInteract");
 const tvScreen = document.getElementById("tvScreen");
+const scene = document.getElementById("scene");
 
-// --- FX Parameters ---
-const fx = {
-  vignette: 0.4,
-  vignetteSize: 0.45,
-  tintR: 1.0,
-  tintG: 0.95,
-  tintB: 0.9,
-  brightness: 1.24,
-  contrast: 1.11,
-  saturation: 1.0,
-};
-
-// ============================================================
-// Hotspot Regions (% of image) — editable via corner anchors
-// ============================================================
-const hotspots = {
-  tv:        { left: 14.7, top: 67.7, width: 28.0, height: 23.5, color: "#00ff00", el: null, screenEl: tvScreen },
-  turntable: { left: 48.0, top: 64.0, width: 18.1, height: 6.2,  color: "#ff4444", el: turntableBtn },
-  vinyl:     { left: 72.4, top: 51.8, width: 12.2, height: 14.5, color: "#4444ff", el: document.getElementById("vinylBtn") },
-  lamp:      { left: 73.7, top: 29.5, width: 10.8, height: 15.5, color: "#ffaa00", el: lampBtn },
-  speakerL:  { left: 47.7, top: 76.5, width: 7.3,  height: 18.1, color: "#ff66ff", el: speakerLeft },
-  speakerR:  { left: 63.4, top: 76.1, width: 7.6,  height: 18.4, color: "#66ffff", el: speakerRight },
-};
+// --- Hotspot Regions ---
+const hotspots = {};
+for (const [name, h] of Object.entries(settings.hotspots)) {
+  hotspots[name] = { ...h };
+}
+hotspots.tv.el = null;
+hotspots.tv.screenEl = tvScreen;
+hotspots.turntable.el = turntableBtn;
+hotspots.lamp.el = null;
+hotspots.speakerL.el = speakerLeft;
+hotspots.speakerR.el = speakerRight;
 
 function syncHotspot(name) {
   const h = hotspots[name];
@@ -88,130 +73,21 @@ function syncHotspot(name) {
     h.screenEl.style.width = h.width + "%";
     h.screenEl.style.height = h.height + "%";
   }
-  // Also sync the TV clickable area and backlight to match the screen
   if (name === "tv") {
     tvBtn.style.left = h.left + "%";
     tvBtn.style.top = h.top + "%";
     tvBtn.style.width = h.width + "%";
     tvBtn.style.height = h.height + "%";
-
   }
 }
-
-// Initial sync
 Object.keys(hotspots).forEach(syncHotspot);
 
-// ============================================================
-// Draggable Corner Anchors
-// ============================================================
-let editMode = false;
-const anchors = []; // all anchor elements
-
-function createAnchors() {
-  // Remove existing
-  anchors.forEach((a) => a.remove());
-  anchors.length = 0;
-
-  if (!editMode) return;
-
-  Object.entries(hotspots).forEach(([name, h]) => {
-    // 4 corners: TL, TR, BL, BR
-    const corners = [
-      { cx: "left", cy: "top", cursor: "nw-resize" },
-      { cx: "right", cy: "top", cursor: "ne-resize" },
-      { cx: "left", cy: "bottom", cursor: "sw-resize" },
-      { cx: "right", cy: "bottom", cursor: "se-resize" },
-    ];
-
-    corners.forEach((corner) => {
-      const dot = document.createElement("div");
-      dot.className = "anchor-dot";
-      dot.style.background = h.color;
-      dot.style.borderColor = h.color;
-      dot.dataset.hotspot = name;
-      dot.dataset.cx = corner.cx;
-      dot.dataset.cy = corner.cy;
-      dot.style.cursor = corner.cursor;
-      hotspotLayer.appendChild(dot);
-      anchors.push(dot);
-
-      positionAnchor(dot, name, corner.cx, corner.cy);
-
-      // Drag logic
-      let dragging = false;
-
-      dot.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dragging = true;
-
-        const onMove = (e2) => {
-          if (!dragging) return;
-          const layerRect = hotspotLayer.getBoundingClientRect();
-          const pctX = ((e2.clientX - layerRect.left) / layerRect.width) * 100;
-          const pctY = ((e2.clientY - layerRect.top) / layerRect.height) * 100;
-
-          if (corner.cx === "left") {
-            const right = h.left + h.width;
-            h.left = Math.max(0, Math.min(pctX, right - 1));
-            h.width = right - h.left;
-          } else {
-            h.width = Math.max(1, pctX - h.left);
-          }
-
-          if (corner.cy === "top") {
-            const bottom = h.top + h.height;
-            h.top = Math.max(0, Math.min(pctY, bottom - 1));
-            h.height = bottom - h.top;
-          } else {
-            h.height = Math.max(1, pctY - h.top);
-          }
-
-          syncHotspot(name);
-          updateAllAnchors(name);
-          // Update Tweakpane
-          pane.refresh();
-        };
-
-        const onUp = () => {
-          dragging = false;
-          window.removeEventListener("mousemove", onMove);
-          window.removeEventListener("mouseup", onUp);
-          console.log(`${name}:`, JSON.stringify({ left: +h.left.toFixed(1), top: +h.top.toFixed(1), width: +h.width.toFixed(1), height: +h.height.toFixed(1) }));
-        };
-
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
-      });
-    });
-  });
-}
-
-function positionAnchor(dot, name, cx, cy) {
-  const h = hotspots[name];
-  const x = cx === "left" ? h.left : h.left + h.width;
-  const y = cy === "top" ? h.top : h.top + h.height;
-  dot.style.left = x + "%";
-  dot.style.top = y + "%";
-}
-
-function updateAllAnchors(name) {
-  anchors
-    .filter((a) => a.dataset.hotspot === name)
-    .forEach((a) => positionAnchor(a, a.dataset.hotspot, a.dataset.cx, a.dataset.cy));
-}
-
-// ============================================================
-// Image Bounds (object-fit: cover)
-// ============================================================
-const scene = document.getElementById("scene");
-
+// --- Image Bounds ---
 function getImageBounds() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const viewRatio = vw / vh;
   let renderedW, renderedH;
-
   if (viewRatio > IMG_RATIO) {
     renderedW = vw;
     renderedH = vw / IMG_RATIO;
@@ -219,39 +95,25 @@ function getImageBounds() {
     renderedH = vh;
     renderedW = vh * IMG_RATIO;
   }
-
   return { renderedW, renderedH };
 }
 
 function syncLayout() {
   const { renderedW, renderedH } = getImageBounds();
-
   scene.style.setProperty("--img-w", renderedW + "px");
   scene.style.setProperty("--img-h", renderedH + "px");
-  // Scale text with image (1% of image width as base font-size)
   hotspotLayer.style.fontSize = (renderedW * 0.01) + "px";
 
-
-  // Center-bottom scroll position on first load
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  if (renderedW > vw) {
-    scene.scrollLeft = (renderedW - vw) / 2;
-  }
-  if (renderedH > vh) {
-    scene.scrollTop = renderedH - vh; // bottom
-  }
+  if (renderedW > vw) scene.scrollLeft = (renderedW - vw) / 2;
+  if (renderedH > vh) scene.scrollTop = renderedH - vh;
 }
 
 syncLayout();
-window.addEventListener("resize", () => {
-  syncLayout();
-  resizeGL();
-});
+window.addEventListener("resize", () => { syncLayout(); resizeGL(); });
 
-// ============================================================
-// WebGL Post-Processing
-// ============================================================
+// --- WebGL Post-Processing ---
 const gl = fxCanvas.getContext("webgl", { alpha: true, premultipliedAlpha: false });
 
 const vertSrc = `
@@ -272,7 +134,6 @@ const fragSrc = `
   uniform vec3 u_tint;
   uniform vec4 u_imageBounds;
 
-  // Convert screen UV to image UV
   vec2 toImgUV(vec2 screenUV) {
     vec2 pixelPos = screenUV * u_resolution;
     return (pixelPos - u_imageBounds.xy) / u_imageBounds.zw;
@@ -285,7 +146,6 @@ const fragSrc = `
     vec4 color = vec4(0.0);
     bool inImage = imgUV.x >= 0.0 && imgUV.x <= 1.0 && imgUV.y >= 0.0 && imgUV.y <= 1.0;
 
-    // --- Vignette ---
     if (u_vignette > 0.0) {
       vec2 vc = screenUV - 0.5;
       float vDist = length(vc);
@@ -294,7 +154,6 @@ const fragSrc = `
       color.a = max(color.a, vFade * u_vignette);
     }
 
-    // --- Tint (applied over entire image area) ---
     if (inImage) {
       vec3 tintOffset = (u_tint - 1.0);
       color.rgb += tintOffset * 0.3;
@@ -309,9 +168,6 @@ function compileShader(type, src) {
   const s = gl.createShader(type);
   gl.shaderSource(s, src);
   gl.compileShader(s);
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-    console.error("Shader compile error:", gl.getShaderInfoLog(s));
-  }
   return s;
 }
 
@@ -345,11 +201,10 @@ function resizeGL() {
 }
 resizeGL();
 
-function render(time) {
+function render() {
   bgImage.style.filter = `brightness(${fx.brightness}) contrast(${fx.contrast}) saturate(${fx.saturation})`;
 
   const { renderedW, renderedH } = getImageBounds();
-  // Account for scroll offset — FX canvas is fixed, image scrolls
   const scrollX = scene.scrollLeft;
   const scrollY = scene.scrollTop;
 
@@ -369,75 +224,7 @@ function render(time) {
 }
 requestAnimationFrame(render);
 
-// ============================================================
-// Tweakpane GUI
-// ============================================================
-const pane = new Pane({ title: "Post FX", expanded: false });
-
-// Hide Tweakpane by default, toggle with Ctrl/Cmd+G
-{
-  const container = pane.element.parentElement;
-  container.style.display = "none";
-  document.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "g") {
-      e.preventDefault();
-      container.style.display = container.style.display === "none" ? "" : "none";
-    }
-  });
-}
-
-// Make Tweakpane draggable
-{
-  const container = pane.element.parentElement;
-  container.style.position = "fixed";
-  container.style.cursor = "grab";
-  container.style.zIndex = "200";
-  let dragging = false, ox = 0, oy = 0;
-  const title = container.querySelector(".tp-rotv_t");
-  if (title) {
-    title.style.cursor = "grab";
-    title.addEventListener("mousedown", (e) => {
-      dragging = true;
-      ox = e.clientX - container.offsetLeft;
-      oy = e.clientY - container.offsetTop;
-      title.style.cursor = "grabbing";
-      e.preventDefault();
-    });
-  }
-  document.addEventListener("mousemove", (e) => {
-    if (!dragging) return;
-    container.style.left = (e.clientX - ox) + "px";
-    container.style.top = (e.clientY - oy) + "px";
-    container.style.right = "auto";
-  });
-  document.addEventListener("mouseup", () => {
-    dragging = false;
-    if (title) title.style.cursor = "grab";
-  });
-}
-
-const fVignette = pane.addFolder({ title: "Vignette", expanded: false });
-fVignette.addBinding(fx, "vignette", { min: 0, max: 1, step: 0.01, label: "Intensity" });
-fVignette.addBinding(fx, "vignetteSize", { min: 0.1, max: 0.8, step: 0.01, label: "Size" });
-
-const fColor = pane.addFolder({ title: "Color", expanded: false });
-fColor.addBinding(fx, "brightness", { min: 0.5, max: 1.5, step: 0.01 });
-fColor.addBinding(fx, "contrast", { min: 0.5, max: 1.5, step: 0.01 });
-fColor.addBinding(fx, "saturation", { min: 0, max: 2, step: 0.01 });
-fColor.addBinding(fx, "tintR", { min: 0.5, max: 1.5, step: 0.01, label: "Tint R" });
-fColor.addBinding(fx, "tintG", { min: 0.5, max: 1.5, step: 0.01, label: "Tint G" });
-fColor.addBinding(fx, "tintB", { min: 0.5, max: 1.5, step: 0.01, label: "Tint B" });
-
 // --- TV Video Color Grading ---
-const tvGrade = {
-  brightness: 1.37,
-  contrast: 1.41,
-  saturation: 1.04,
-  warmth: 0.07,
-  hueRotate: 0,
-  opacity: 0.69,
-};
-
 function syncTVGrade() {
   const ytEl = document.getElementById("ytPlayer");
   const spotifyEl = document.getElementById("tvSpotify");
@@ -445,145 +232,36 @@ function syncTVGrade() {
   if (ytEl) { ytEl.style.filter = filter; ytEl.style.opacity = tvGrade.opacity; }
   if (spotifyEl) { spotifyEl.style.filter = filter; spotifyEl.style.opacity = tvGrade.opacity; }
 }
-
-const fTVGrade = pane.addFolder({ title: "TV Color", expanded: false });
-fTVGrade.addBinding(tvGrade, "brightness", { min: 0.3, max: 2.0, step: 0.01 }).on("change", syncTVGrade);
-fTVGrade.addBinding(tvGrade, "contrast", { min: 0.3, max: 2.0, step: 0.01 }).on("change", syncTVGrade);
-fTVGrade.addBinding(tvGrade, "saturation", { min: 0, max: 2.0, step: 0.01 }).on("change", syncTVGrade);
-fTVGrade.addBinding(tvGrade, "warmth", { min: 0, max: 1.0, step: 0.01, label: "Warmth" }).on("change", syncTVGrade);
-fTVGrade.addBinding(tvGrade, "hueRotate", { min: -180, max: 180, step: 1, label: "Hue Shift" }).on("change", syncTVGrade);
-fTVGrade.addBinding(tvGrade, "opacity", { min: 0.3, max: 1.0, step: 0.01 }).on("change", syncTVGrade);
-
-// Apply initial grade
 syncTVGrade();
 
-// --- TV LED Position ---
-const led = { top: 92.2, left: 28.8, size: 5.0 };
+// --- LEDs ---
 const tvLedEl = document.getElementById("tvLed");
-
-function syncLed() {
-  tvLedEl.style.top = led.top + "%";
-  tvLedEl.style.left = led.left + "%";
-  tvLedEl.style.width = led.size + "px";
-  tvLedEl.style.height = led.size + "px";
-}
-
-syncLed();
-const fLed = pane.addFolder({ title: "LEDs", expanded: false });
-fLed.addBinding(led, "left", { min: 10, max: 50, step: 0.1, label: "TV Left %" }).on("change", syncLed);
-fLed.addBinding(led, "top", { min: 80, max: 98, step: 0.1, label: "TV Top %" }).on("change", syncLed);
-fLed.addBinding(led, "size", { min: 2, max: 12, step: 0.1, label: "TV Size px" }).on("change", syncLed);
-
-// --- Hifi LED Position ---
-const hifi = { top: 83.5, left: 57.4, size: 5.5 };
 const hifiLedEl = document.getElementById("hifiLed");
 
-function syncHifiLed() {
-  hifiLedEl.style.top = hifi.top + "%";
-  hifiLedEl.style.left = hifi.left + "%";
-  hifiLedEl.style.width = hifi.size + "px";
-  hifiLedEl.style.height = hifi.size + "px";
-}
+tvLedEl.style.top = settings.leds.tv.top + "%";
+tvLedEl.style.left = settings.leds.tv.left + "%";
+tvLedEl.style.width = settings.leds.tv.size + "px";
+tvLedEl.style.height = settings.leds.tv.size + "px";
 
-syncHifiLed();
-fLed.addBinding(hifi, "left", { min: 40, max: 80, step: 0.1, label: "Hifi Left %" }).on("change", syncHifiLed);
-fLed.addBinding(hifi, "top", { min: 60, max: 95, step: 0.1, label: "Hifi Top %" }).on("change", syncHifiLed);
-fLed.addBinding(hifi, "size", { min: 2, max: 12, step: 0.1, label: "Hifi Size px" }).on("change", syncHifiLed);
+hifiLedEl.style.top = settings.leds.hifi.top + "%";
+hifiLedEl.style.left = settings.leds.hifi.left + "%";
+hifiLedEl.style.width = settings.leds.hifi.size + "px";
+hifiLedEl.style.height = settings.leds.hifi.size + "px";
 
+// --- Apply styles ---
+hotspotLayer.classList.add(`hotspot-style-${settings.style.hotspotStyle}`);
 
-const fontOptions = {
-  "Permanent Marker": "'Permanent Marker', cursive",
-  "Caveat": "'Caveat', cursive",
-  "Rock Salt": "'Rock Salt', cursive",
-  "Northwell": "'Northwell', cursive",
-  "Amatic SC": "'Amatic SC', cursive",
-  "Kalam": "'Kalam', cursive",
-  "Londrina Shadow": "'Londrina Shadow', cursive",
-  "Bungee Shade": "'Bungee Shade', cursive",
-  "Fredericka": "'Fredericka the Great', cursive",
-  "Rubik Doodle Shadow": "'Rubik Doodle Shadow', cursive",
-  "Sacramento": "'Sacramento', cursive",
-  "Shadows Into Light": "'Shadows Into Light', cursive",
-  "Rollerscript Rough": "'Rollerscript Rough', cursive",
-  "DK Cool Crayon": "'DK Cool Crayon', cursive",
-  "DK Crayon Crumble": "'DK Crayon Crumble', cursive",
-  "Eraser": "'Eraser', cursive",
-  "Colored Crayons": "'Colored Crayons', cursive",
-  "Clouds of Despair": "'Clouds of Despair LSF', cursive",
-  "Analo Grotesk": "'Analo Grotesk-Trial', sans-serif",
-  "ABC Connect": "'ABC Connect Unlicensed Trial', sans-serif",
-  "ABC Connect Mono": "'ABC Connect Mono Unlicensed Trial', monospace",
-  "ABC Favorit": "'ABC Favorit Unlicensed Trial', sans-serif",
-  "ABC Favorit Mono": "'ABC Favorit Mono Unlicensed Trial', monospace",
-  "ABC Ginto Normal": "'ABC Ginto Normal Unlicensed Trial', sans-serif",
-  "ABC Ginto Nord": "'ABC Ginto Nord Unlicensed Trial', sans-serif",
-  "Agipo": "'Agipo', sans-serif",
-  "Ames Roman": "'Ames\\' Roman', serif",
-  "Avara": "'Avara', serif",
-  "Cukier": "'Cukier', sans-serif",
-  "Fugue": "'Fugue', sans-serif",
-  "Moderat": "'Moderat Regular', sans-serif",
-  "Mondwest": "'Mondwest', sans-serif",
-  "PP Mondwest": "'PP Mondwest', sans-serif",
-  "Monitor Display": "'Monitor Display', sans-serif",
-  "Morion": "'Morion', serif",
-  "Matrice": "'Matrice', sans-serif",
-  "OffBit": "'OffBit', sans-serif",
-  "PP Neue Bit": "'PP Neue Bit', sans-serif",
-  "Saol Text": "'SaolText-Regular', serif",
-  "Trinite": "'TriniteNo1', serif",
-  "Redaction": "'Redaction', serif",
-  "Redaction 10": "'Redaction 10', serif",
-  "Redaction 50": "'Redaction 50', serif",
-  "Redaction 100": "'Redaction 100', serif",
-  "Sneak": "'Sneak', sans-serif",
-  "Trash": "'Trash', sans-serif",
-  "Random": "'Random', sans-serif",
-  "Trim Poster": "'Trim Poster', sans-serif",
-  "Monorama": "'Monorama', monospace",
-  "Necto Mono": "'Necto Mono', monospace",
-  "System85": "'System85 Pro', monospace",
-  "Synchro": "'SynchroDOT', monospace",
-  "GlyphWorld": "'GlyphWorld', sans-serif",
-  "System": "system-ui, sans-serif",
-};
-
-const fontNames = Object.keys(fontOptions);
-const fontOpts = Object.fromEntries(fontNames.map(f => [f, f]));
-
-// --- Hotspot Layout Editor ---
-const fLayout = pane.addFolder({ title: "Layout Editor", expanded: false });
-const editState = { editMode: false };
-fLayout.addBinding(editState, "editMode", { label: "Edit Hotspots" }).on("change", (e) => {
-  editMode = e.value;
-  createAnchors();
+const nav = document.getElementById("floatingNav");
+nav.style.fontFamily = settings.style.navFont;
+nav.querySelectorAll("button").forEach(btn => {
+  btn.style.fontFamily = settings.style.navFont;
+  btn.style.textTransform = settings.style.navTransform;
+});
+document.querySelectorAll(".info-dot__panel").forEach(p => {
+  p.style.fontFamily = settings.style.panelFont;
 });
 
-// Add per-hotspot folders with numeric inputs
-Object.entries(hotspots).forEach(([name, h]) => {
-  const f = fLayout.addFolder({ title: name, expanded: false });
-  f.addBinding(h, "left",   { min: 0, max: 100, step: 0.1, label: "Left %" }).on("change", () => { syncHotspot(name); if (editMode) updateAllAnchors(name); });
-  f.addBinding(h, "top",    { min: 0, max: 100, step: 0.1, label: "Top %" }).on("change", () => { syncHotspot(name); if (editMode) updateAllAnchors(name); });
-  f.addBinding(h, "width",  { min: 1, max: 100, step: 0.1, label: "Width %" }).on("change", () => { syncHotspot(name); if (editMode) updateAllAnchors(name); });
-  f.addBinding(h, "height", { min: 1, max: 100, step: 0.1, label: "Height %" }).on("change", () => { syncHotspot(name); if (editMode) updateAllAnchors(name); });
-});
-
-// Export button — logs all values to console
-fLayout.addButton({ title: "Log All Positions" }).on("click", () => {
-  const out = {};
-  Object.entries(hotspots).forEach(([name, h]) => {
-    out[name] = { left: +h.left.toFixed(1), top: +h.top.toFixed(1), width: +h.width.toFixed(1), height: +h.height.toFixed(1) };
-  });
-  console.log("Hotspot positions:", JSON.stringify(out, null, 2));
-});
-
-// ============================================================
-// Interactive Features
-// ============================================================
-
-// ============================================================
-// TV System — YouTube Player API + Spotify iframe
-// ============================================================
+// --- TV System ---
 let tvMode = "logo";
 const tvLogo = document.getElementById("tvLogo");
 const tvSpotify = document.getElementById("tvSpotify");
@@ -599,39 +277,23 @@ let ytVolume = 80;
 let timelineInterval = null;
 let volumeTimeout = null;
 
-// YouTube API — load dynamically and set up player
 window.onYouTubeIframeAPIReady = () => {
   ytPlayer = new YT.Player("ytPlayer", {
     videoId: YOUTUBE_VIDEO_ID,
     playerVars: {
-      autoplay: 0,
-      controls: 0,
-      modestbranding: 1,
-      rel: 0,
-      showinfo: 0,
-      loop: 1,
-      playlist: YOUTUBE_VIDEO_ID,
-      playsinline: 1,
+      autoplay: 0, controls: 0, modestbranding: 1, rel: 0,
+      showinfo: 0, loop: 1, playlist: YOUTUBE_VIDEO_ID, playsinline: 1,
     },
     events: {
-      onReady: () => {
-        ytReady = true;
-        ytPlayer.setVolume(ytVolume);
-      },
+      onReady: () => { ytReady = true; ytPlayer.setVolume(ytVolume); },
       onStateChange: (e) => {
         ytPlaying = e.data === YT.PlayerState.PLAYING;
-        if (ytPlaying) {
-          startTimeline();
-        } else {
-          stopTimeline();
-        }
+        ytPlaying ? startTimeline() : stopTimeline();
       },
     },
   });
-
 };
 
-// Load YouTube IFrame API script
 const ytScript = document.createElement("script");
 ytScript.src = "https://www.youtube.com/iframe_api";
 document.head.appendChild(ytScript);
@@ -642,9 +304,7 @@ function startTimeline() {
     if (!ytPlayer || !ytReady) return;
     const current = ytPlayer.getCurrentTime();
     const duration = ytPlayer.getDuration();
-    if (duration > 0) {
-      tvTimelineProgress.style.width = (current / duration) * 100 + "%";
-    }
+    if (duration > 0) tvTimelineProgress.style.width = (current / duration) * 100 + "%";
   }, 250);
 }
 
@@ -663,24 +323,17 @@ function setTVMode(mode) {
   tvInteract.style.display = "";
   tvTimeline.style.display = "none";
 
-  // Hide YouTube player div
   const ytEl = document.getElementById("ytPlayer");
   if (ytEl) ytEl.style.display = "none";
 
-  // Pause YouTube if switching away
   if (mode !== "youtube" && ytReady && ytPlayer) {
     ytPlayer.pauseVideo();
     ytPlaying = false;
     stopTimeline();
   }
 
-
   tvMode = mode;
-
-  // Toggle power LED
-  const tvLed = document.getElementById("tvLed");
-  if (tvLed) tvLed.classList.toggle("on", mode !== "logo");
-
+  tvLedEl.classList.toggle("on", mode !== "logo");
 
   switch (mode) {
     case "logo":
@@ -694,97 +347,64 @@ function setTVMode(mode) {
       tvInteract.style.display = "none";
       break;
     case "youtube":
-      if (ytEl) {
-        ytEl.style.display = "block";
-        ytEl.classList.add("active");
-      }
+      if (ytEl) { ytEl.style.display = "block"; ytEl.classList.add("active"); }
       tvTimeline.style.display = "block";
       tvScreen.style.pointerEvents = "auto";
-      if (ytReady && ytPlayer) {
-        ytPlayer.playVideo();
-      }
+      if (ytReady && ytPlayer) ytPlayer.playVideo();
       break;
   }
 }
 
-// Start with logo
 setTVMode("logo");
 
-// --- TV click: play/pause YouTube ---
+// --- TV click ---
 tvBtn.addEventListener("click", () => {
-  if (editMode) return;
-
   if (tvMode === "logo") {
-    // First click: start YouTube
     if (isPlaying) stopPlaying();
     setTVMode("youtube");
   } else if (tvMode === "youtube") {
-    // Toggle play/pause
-    if (ytReady && ytPlayer) {
-      if (ytPlaying) {
-        ytPlayer.pauseVideo();
-      } else {
-        ytPlayer.playVideo();
-      }
-    }
+    if (ytReady && ytPlayer) ytPlaying ? ytPlayer.pauseVideo() : ytPlayer.playVideo();
   } else if (tvMode === "spotify") {
-    // Switch back to YouTube
     if (isPlaying) stopPlaying();
     setTVMode("youtube");
   }
 });
 
-// --- Play button above TV ---
 const tvPlayBtn = document.getElementById("tvPlayBtn");
 if (tvPlayBtn) {
   tvPlayBtn.addEventListener("click", () => {
-    if (editMode) return;
     if (isPlaying) stopPlaying();
     setTVMode("youtube");
   });
 }
 
-// --- TV screen overlay: click to play/pause YouTube ---
 tvInteract.addEventListener("click", () => {
-  if (editMode) return;
   if (tvMode === "logo") {
     if (isPlaying) stopPlaying();
     setTVMode("youtube");
   } else if (tvMode === "youtube") {
-    if (ytReady && ytPlayer) {
-      if (ytPlaying) {
-        ytPlayer.pauseVideo();
-      } else {
-        ytPlayer.playVideo();
-      }
-    }
+    if (ytReady && ytPlayer) ytPlaying ? ytPlayer.pauseVideo() : ytPlayer.playVideo();
   }
 });
 
-// --- Timeline: click to seek ---
 tvTimeline.addEventListener("click", (e) => {
   if (!ytReady || !ytPlayer) return;
   const rect = tvTimeline.getBoundingClientRect();
   const pct = (e.clientX - rect.left) / rect.width;
-  const duration = ytPlayer.getDuration();
-  ytPlayer.seekTo(pct * duration, true);
+  ytPlayer.seekTo(pct * ytPlayer.getDuration(), true);
 });
 
-// --- Volume: scroll/swipe on TV screen ---
 tvScreen.addEventListener("wheel", (e) => {
   if (tvMode !== "youtube" || !ytReady || !ytPlayer) return;
   e.preventDefault();
   ytVolume = Math.max(0, Math.min(100, ytVolume - Math.sign(e.deltaY) * 5));
   ytPlayer.setVolume(ytVolume);
-
-  // Show volume indicator
   tvVolumeBar.style.height = ytVolume + "%";
   tvVolumeEl.classList.add("visible");
   clearTimeout(volumeTimeout);
   volumeTimeout = setTimeout(() => tvVolumeEl.classList.remove("visible"), 1200);
 }, { passive: false });
 
-// Touch swipe for volume (mobile)
 let touchStartY = 0;
 tvScreen.addEventListener("touchstart", (e) => {
   if (tvMode !== "youtube") return;
@@ -797,23 +417,20 @@ tvScreen.addEventListener("touchmove", (e) => {
   touchStartY = e.touches[0].clientY;
   ytVolume = Math.max(0, Math.min(100, ytVolume + deltaY * 0.5));
   ytPlayer.setVolume(ytVolume);
-
   tvVolumeBar.style.height = ytVolume + "%";
   tvVolumeEl.classList.add("visible");
   clearTimeout(volumeTimeout);
   volumeTimeout = setTimeout(() => tvVolumeEl.classList.remove("visible"), 1200);
 }, { passive: true });
 
-// --- Turntable: cycle through albums in TV ---
+// --- Turntable ---
 turntableBtn.addEventListener("click", () => {
-  if (editMode) return;
-
   if (!isPlaying) {
     isPlaying = true;
     currentAlbumIndex = 0;
     setTVMode("spotify");
     turntableBtn.classList.add("playing");
-    document.getElementById("hifiLed").classList.add("on");
+    hifiLedEl.classList.add("on");
   } else {
     currentAlbumIndex = (currentAlbumIndex + 1) % SPOTIFY_ALBUMS.length;
     setTVMode("spotify");
@@ -824,11 +441,8 @@ function stopPlaying() {
   isPlaying = false;
   setTVMode("youtube");
   turntableBtn.classList.remove("playing");
-  document.getElementById("hifiLed").classList.remove("on");
+  hifiLedEl.classList.remove("on");
 }
-
-// --- Vinyl click: start Spotify and scroll to TV ---
-
 
 // --- TV Static ---
 function drawStatic() {
@@ -841,13 +455,7 @@ function drawStatic() {
   function renderFrame() {
     const imageData = ctx.createImageData(w, h);
     const data = imageData.data;
-
-    // Very gentle global flicker
-    if (Math.random() < 0.04) {
-      globalFlicker = 0.92 + Math.random() * 0.16;
-    }
-
-    // Rare faint horizontal band
+    if (Math.random() < 0.04) globalFlicker = 0.92 + Math.random() * 0.16;
     const bandY = Math.random() < 0.02 ? Math.floor(Math.random() * h) : -1;
     const bandH = 1 + Math.floor(Math.random() * 2);
     const bandBright = 0.85 + Math.random() * 0.3;
@@ -855,22 +463,14 @@ function drawStatic() {
     for (let y = 0; y < h; y++) {
       const scanlineBias = 0.9 + Math.random() * 0.2;
       const inBand = bandY >= 0 && y >= bandY && y < bandY + bandH;
-
       for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4;
-
-        // Gentle contrast push
         let v = Math.random();
         v = v < 0.5 ? v * 0.7 : 0.3 + v * 0.7;
         v = v * 255 * scanlineBias * globalFlicker;
-
         if (inBand) v *= bandBright;
-
         v = Math.min(255, Math.max(0, v));
-        data[i] = v;
-        data[i + 1] = v;
-        data[i + 2] = v;
-        data[i + 3] = 190;
+        data[i] = v; data[i + 1] = v; data[i + 2] = v; data[i + 3] = 190;
       }
     }
     ctx.putImageData(imageData, 0, 0);
@@ -880,55 +480,15 @@ function drawStatic() {
 }
 drawStatic();
 
-
 // --- ESC ---
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && isPlaying) stopPlaying();
 });
 
-
-// ============================================================
-// Portal — Generated image behind the wall, mouse-following mask
-// ============================================================
-const portal = { size: 12 };
+// --- Portal ---
 const portalBg = document.getElementById("portalBg");
-
-// Random portal background on each page load
-const portalImages = [
-  "assets/portal-1.jpg",
-  "assets/portal-2.jpg",
-  "assets/portal-3.jpg",
-  "assets/portal-4.jpg",
-  "assets/portal-5.jpg",
-  "assets/portal-6.jpg",
-  "assets/portal-7.jpg",
-  "assets/portal-8.jpg",
-  "assets/portal-9.jpg",
-  "assets/portal-10.jpg",
-  "assets/portal-11.jpg",
-  "assets/portal-12.jpg",
-  "assets/portal-13.jpg",
-  "assets/portal-14.jpg",
-  "assets/portal-15.jpg",
-  "assets/portal-16.jpg",
-  "assets/portal-17.jpg",
-  "assets/portal-18.jpg",
-  "assets/portal-19.jpg",
-  "assets/portal-20.jpg",
-  "assets/portal-21.jpg",
-  "assets/portal-22.jpg",
-  "assets/portal-23.jpg",
-  "assets/portal-24.jpg",
-  "assets/portal-25.jpg",
-  "assets/portal-26.jpg",
-  "assets/portal-27.jpg",
-  "assets/portal-28.jpg",
-  "assets/portal-29.jpg",
-  "assets/portal-30.jpg",
-];
 let portalIdx = Math.floor(Math.random() * portalImages.length);
 
-// Arrow up/down to cycle portal images
 document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowUp") {
     e.preventDefault();
@@ -942,26 +502,18 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// Click to cycle portal image
 scene.addEventListener("click", () => {
   portalIdx = (portalIdx + 1) % portalImages.length;
   portalBg.src = portalImages[portalIdx];
 });
 
-const fPortal = pane.addFolder({ title: "Portal", expanded: false });
-
-// ============================================================
-// IKEA-style Info Dots
-// ============================================================
-const infoDots = {
-  band:    { left: 53.2, top: 38.4, el: document.getElementById("infoBand") },
-  contact: { left: 21.8, top: 30.3, el: document.getElementById("infoContact") },
-  vinyl:     { left: 72.5, top: 51.5, el: document.getElementById("infoVinyl") },
-  closeaway: { left: 82.6, top: 68.5, el: document.getElementById("infoCloseAway") },
-  listen:    { left: 54.5, top: 68, el: document.getElementById("infoListen") },
-  watch:   { left: 28.8, top: 66.6, el: document.getElementById("infoWatch") },
-  poster:  { left: 89.1, top: 31.1, el: document.getElementById("infoPoster") },
-};
+// --- Info Dots ---
+const infoDots = {};
+for (const [name, pos] of Object.entries(settings.infoDots)) {
+  infoDots[name] = { ...pos, el: document.getElementById("info" + name.charAt(0).toUpperCase() + name.slice(1)) };
+}
+// Fix casing for special IDs
+infoDots.closeaway.el = document.getElementById("infoCloseAway");
 
 function syncInfoDots() {
   Object.values(infoDots).forEach((d) => {
@@ -971,10 +523,17 @@ function syncInfoDots() {
 }
 syncInfoDots();
 
-// Prevent panel clicks from toggling the dot
 document.querySelectorAll(".info-dot__panel").forEach((panel) => {
   panel.addEventListener("click", (e) => e.stopPropagation());
 });
+
+const navTargets = {
+  band:    { get left() { return infoDots.band.left; },    get top() { return infoDots.band.top; },    dot: "infoBand" },
+  contact: { get left() { return infoDots.contact.left; }, get top() { return infoDots.contact.top; }, dot: "infoContact" },
+  vinyl:   { get left() { return infoDots.vinyl.left; },   get top() { return infoDots.vinyl.top; },   dot: "infoVinyl" },
+  listen:  { get left() { return infoDots.listen.left; },  get top() { return infoDots.listen.top; },  dot: "infoListen" },
+  watch:   { get left() { return infoDots.watch.left; },   get top() { return infoDots.watch.top; },   dot: "infoWatch" },
+};
 
 document.querySelectorAll(".info-dot").forEach((dot) => {
   dot.addEventListener("click", (e) => {
@@ -983,25 +542,21 @@ document.querySelectorAll(".info-dot").forEach((dot) => {
     document.querySelectorAll(".info-dot.active").forEach((d) => d.classList.remove("active"));
     if (!wasActive) {
       dot.classList.add("active");
-      // Sync nav highlight
       const dotId = dot.id;
       const navTarget = Object.keys(navTargets).find((k) => navTargets[k].dot === dotId);
       document.querySelectorAll(".floating-nav button").forEach((b) => {
         b.classList.toggle("active", b.dataset.target === navTarget);
       });
 
-      // Position panel based on proximity to edges
       const panel = dot.querySelector(".info-dot__panel");
       if (panel) {
         const dotTop = parseFloat(dot.style.top);
         const dotLeft = parseFloat(dot.style.left);
-        // Reset positioning
         panel.style.bottom = "";
         panel.style.top = "";
         panel.style.left = "";
         panel.style.right = "";
         panel.style.transform = "";
-        // Flip below if dot is near top edge
         if (dotTop < 35) {
           panel.style.top = "calc(100% + 1.2em)";
           panel.style.bottom = "auto";
@@ -1013,7 +568,6 @@ document.querySelectorAll(".info-dot").forEach((dot) => {
           panel.style.left = "50%";
           panel.style.transform = "translateX(-50%)";
         }
-        // Shift if near left/right edge
         if (dotLeft < 20) {
           panel.style.left = "0";
           panel.style.transform = "none";
@@ -1024,14 +578,13 @@ document.querySelectorAll(".info-dot").forEach((dot) => {
         }
       }
 
-      // Scroll to center this dot in the viewport
       const { renderedW, renderedH } = getImageBounds();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const dotLeft = parseFloat(dot.style.left) / 100 * renderedW;
-      const dotTop = parseFloat(dot.style.top) / 100 * renderedH;
-      const scrollX = Math.max(0, Math.min(dotLeft - vw / 2, renderedW - vw));
-      const scrollY = Math.max(0, Math.min(dotTop - vh / 2, renderedH - vh));
+      const dotLeftPx = parseFloat(dot.style.left) / 100 * renderedW;
+      const dotTopPx = parseFloat(dot.style.top) / 100 * renderedH;
+      const scrollX = Math.max(0, Math.min(dotLeftPx - vw / 2, renderedW - vw));
+      const scrollY = Math.max(0, Math.min(dotTopPx - vh / 2, renderedH - vh));
       scene.scrollTo({ left: scrollX, top: scrollY, behavior: "smooth" });
     }
   });
@@ -1042,87 +595,7 @@ document.addEventListener("click", () => {
   document.querySelectorAll(".floating-nav button.active").forEach((b) => b.classList.remove("active"));
 });
 
-// Hotspot style switcher
-const textTransforms = { "none": "none", "uppercase": "uppercase", "lowercase": "lowercase", "capitalize": "capitalize" };
-const hotspotStyles = {
-  style: "dot",
-  navFont: "Analo Grotesk", navFontSize: 0.95, navTransform: "uppercase",
-  navTextColor: "#ffffffcc", navBgColor: "#ffffff", navBgOpacity: 0.08,
-  panelFont: "Analo Grotesk", panelHeadingFont: "Analo Grotesk",
-};
-const styleOptions = {
-  "Dot (minimal)": "dot",
-  "Pin (thumbtack)": "pin",
-  "Pencil (hand-drawn)": "pencil",
-  "Glow (light leak)": "glow",
-  "Asterisk (chalk)": "asterisk",
-  "Leaf (botanical)": "leaf",
-};
-
-function applyHotspotStyle() {
-  const el = document.getElementById("hotspotLayer");
-  el.className = el.className.replace(/hotspot-style-\S+/g, "").trim();
-  el.classList.add(`hotspot-style-${hotspotStyles.style}`);
-}
-
-function applyUIFonts() {
-  const nav = document.getElementById("floatingNav");
-  const panels = document.querySelectorAll(".info-dot__panel");
-  const headings = document.querySelectorAll(".info-dot__panel h3");
-
-  if (nav) {
-    const ff = fontOptions[hotspotStyles.navFont] || "system-ui, sans-serif";
-    const bg = hotspotStyles.navBgColor;
-    const r = parseInt(bg.slice(1,3), 16);
-    const g = parseInt(bg.slice(3,5), 16);
-    const b = parseInt(bg.slice(5,7), 16);
-    nav.style.setProperty("--nav-bg", `rgba(${r},${g},${b},${hotspotStyles.navBgOpacity})`);
-    nav.style.setProperty("--nav-text", hotspotStyles.navTextColor);
-    nav.style.setProperty("--nav-text-hover", hotspotStyles.navTextColor);
-    nav.style.setProperty("--nav-font-size", hotspotStyles.navFontSize + "rem");
-    nav.style.fontFamily = ff;
-    nav.querySelectorAll("button").forEach(btn => {
-      btn.style.fontFamily = ff;
-      btn.style.textTransform = hotspotStyles.navTransform;
-      btn.style.color = hotspotStyles.navTextColor;
-    });
-  }
-  panels.forEach(p => { p.style.fontFamily = fontOptions[hotspotStyles.panelFont]; });
-  headings.forEach(h => { h.style.fontFamily = fontOptions[hotspotStyles.panelHeadingFont]; });
-}
-
-applyHotspotStyle();
-applyUIFonts();
-
-// GUI for positioning info dots
-const fInfoDots = pane.addFolder({ title: "Info Dots", expanded: false });
-fInfoDots.addBinding(hotspotStyles, "style", { options: styleOptions, label: "Hotspot Style" }).on("change", applyHotspotStyle);
-fInfoDots.addBinding(hotspotStyles, "navFont", { options: fontOpts, label: "Nav Font" }).on("change", applyUIFonts);
-fInfoDots.addBinding(hotspotStyles, "navFontSize", { min: 0.4, max: 2.0, step: 0.05, label: "Nav Size" }).on("change", applyUIFonts);
-fInfoDots.addBinding(hotspotStyles, "navTransform", { options: textTransforms, label: "Nav Transform" }).on("change", applyUIFonts);
-fInfoDots.addBinding(hotspotStyles, "navTextColor", { label: "Nav Text Color" }).on("change", applyUIFonts);
-fInfoDots.addBinding(hotspotStyles, "navBgColor", { label: "Nav Bg Color" }).on("change", applyUIFonts);
-fInfoDots.addBinding(hotspotStyles, "navBgOpacity", { min: 0, max: 1, step: 0.05, label: "Nav Bg Opacity" }).on("change", applyUIFonts);
-fInfoDots.addBinding(hotspotStyles, "panelFont", { options: fontOpts, label: "Panel Font" }).on("change", applyUIFonts);
-fInfoDots.addBinding(hotspotStyles, "panelHeadingFont", { options: fontOpts, label: "Heading Font" }).on("change", applyUIFonts);
-Object.entries(infoDots).forEach(([name, d]) => {
-  const f = fInfoDots.addFolder({ title: name, expanded: false });
-  f.addBinding(d, "left", { min: 0, max: 100, step: 0.1, label: "Left %" }).on("change", syncInfoDots);
-  f.addBinding(d, "top",  { min: 0, max: 100, step: 0.1, label: "Top %" }).on("change", syncInfoDots);
-});
-
-// ============================================================
-// Floating Navigation — scroll & zoom to targets
-// ============================================================
-// Nav targets reference infoDots directly
-const navTargets = {
-  band:    { get left() { return infoDots.band.left; },    get top() { return infoDots.band.top; },    dot: "infoBand" },
-  contact: { get left() { return infoDots.contact.left; }, get top() { return infoDots.contact.top; }, dot: "infoContact" },
-  vinyl:   { get left() { return infoDots.vinyl.left; },   get top() { return infoDots.vinyl.top; },   dot: "infoVinyl" },
-  listen:  { get left() { return infoDots.listen.left; },  get top() { return infoDots.listen.top; },  dot: "infoListen" },
-  watch:   { get left() { return infoDots.watch.left; },   get top() { return infoDots.watch.top; },   dot: "infoWatch" },
-};
-
+// --- Navigation ---
 function navigateTo(target) {
   const t = navTargets[target];
   if (!t) return;
@@ -1130,37 +603,23 @@ function navigateTo(target) {
   const { renderedW, renderedH } = getImageBounds();
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-
-  // Target pixel position in the image
   const targetX = (t.left / 100) * renderedW;
   const targetY = (t.top / 100) * renderedH;
-
-  // Scroll so target is centered in viewport
   const scrollX = Math.max(0, Math.min(targetX - vw / 2, renderedW - vw));
   const scrollY = Math.max(0, Math.min(targetY - vh / 2, renderedH - vh));
-
-  // Check if scroll is actually needed
   const needsScroll = Math.abs(scene.scrollLeft - scrollX) > 5 || Math.abs(scene.scrollTop - scrollY) > 5;
 
-  if (needsScroll) {
-    scene.scrollTo({ left: scrollX, top: scrollY, behavior: "smooth" });
-  }
+  if (needsScroll) scene.scrollTo({ left: scrollX, top: scrollY, behavior: "smooth" });
 
-  // Open the corresponding info dot
   if (t.dot) {
     const openDot = () => {
       document.querySelectorAll(".info-dot.active").forEach((d) => d.classList.remove("active"));
       const dotEl = document.getElementById(t.dot);
       if (dotEl) dotEl.click();
     };
-    if (needsScroll) {
-      setTimeout(openDot, 400);
-    } else {
-      openDot();
-    }
+    needsScroll ? setTimeout(openDot, 400) : openDot();
   }
 
-  // Highlight active nav button
   document.querySelectorAll(".floating-nav button").forEach((b) => {
     b.classList.toggle("active", b.dataset.target === target);
   });
