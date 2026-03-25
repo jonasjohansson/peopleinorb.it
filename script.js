@@ -1,8 +1,8 @@
 import { Pane } from "https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js";
 
 // --- Constants ---
-const IMG_W = 8192;
-const IMG_H = 5464;
+const IMG_W = 6144;
+const IMG_H = 4098;
 const IMG_RATIO = IMG_W / IMG_H;
 
 const SPOTIFY_ALBUMS = [
@@ -224,17 +224,8 @@ function getImageBounds() {
 function syncLayout() {
   const { renderedW, renderedH } = getImageBounds();
 
-  // Size both background images to cover
-  bgImage.style.width = renderedW + "px";
-  bgImage.style.height = renderedH + "px";
-  bgImageDusk.style.width = renderedW + "px";
-  bgImageDusk.style.height = renderedH + "px";
-
-  // Hotspot layer matches image
-  hotspotLayer.style.width = renderedW + "px";
-  hotspotLayer.style.height = renderedH + "px";
-  hotspotLayer.style.left = "0px";
-  hotspotLayer.style.top = "0px";
+  scene.style.setProperty("--img-w", renderedW + "px");
+  scene.style.setProperty("--img-h", renderedH + "px");
   // Scale text with image (1% of image width as base font-size)
   hotspotLayer.style.fontSize = (renderedW * 0.01) + "px";
 
@@ -465,7 +456,7 @@ fTVGrade.addBinding(tvGrade, "opacity", { min: 0.3, max: 1.0, step: 0.01 }).on("
 syncTVGrade();
 
 // --- TV LED Position ---
-const led = { top: 92.2, left: 28.7, size: 2.5 };
+const led = { top: 92.2, left: 28.8, size: 5.0 };
 const tvLedEl = document.getElementById("tvLed");
 
 function syncLed() {
@@ -481,7 +472,7 @@ fLed.addBinding(led, "top", { min: 80, max: 98, step: 0.1, label: "TV Top %" }).
 fLed.addBinding(led, "size", { min: 2, max: 12, step: 0.1, label: "TV Size px" }).on("change", syncLed);
 
 // --- Hifi LED Position ---
-const hifi = { top: 83.6, left: 57.5, size: 4 };
+const hifi = { top: 83.6, left: 57.5, size: 10.0 };
 const hifiLedEl = document.getElementById("hifiLed");
 
 function syncHifiLed() {
@@ -981,8 +972,6 @@ document.addEventListener("keydown", (e) => {
 // Size portal bg to match the main image
 function syncPortalSize() {
   const { renderedW, renderedH } = getImageBounds();
-  portalBg.style.width = renderedW + "px";
-  portalBg.style.height = renderedH + "px";
 }
 
 // Mouse-following circular mask
@@ -1036,6 +1025,11 @@ function syncInfoDots() {
   });
 }
 syncInfoDots();
+
+// Prevent panel clicks from toggling the dot
+document.querySelectorAll(".info-dot__panel").forEach((panel) => {
+  panel.addEventListener("click", (e) => e.stopPropagation());
+});
 
 document.querySelectorAll(".info-dot").forEach((dot) => {
   dot.addEventListener("click", (e) => {

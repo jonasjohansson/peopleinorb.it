@@ -19,37 +19,29 @@
       <button data-target="contact">Contact</button>
     </nav>
     <div class="scene" id="scene">
-      <!-- Fantasy world behind the wall -->
       <img src="" class="portal-bg" id="portalBg" alt="" />
 
-      <picture>
-        <source srcset="assets/pio.avif" type="image/avif" />
-        <source srcset="assets/pio.webp" type="image/webp" />
-        <img
-          src="assets/pio.jpg"
-          alt="People in Orbit"
-          class="bg-image"
-          id="bgImage"
-        />
-      </picture>
-      <picture>
-        <source srcset="assets/pio-dusk.avif" type="image/avif" />
-        <source srcset="assets/pio-dusk.webp" type="image/webp" />
-        <img
-          src="assets/pio-dusk.jpg"
-          alt=""
-          class="bg-image bg-image--dusk"
-          id="bgImageDusk"
-        />
-      </picture>
+      <img
+        src="assets/pio.avif"
+        alt="People in Orbit"
+        class="bg-image"
+        id="bgImage"
+        fetchpriority="high"
+        decoding="async"
+      />
+      <img
+        src="assets/pio-dusk.avif"
+        alt=""
+        class="bg-image bg-image--dusk"
+        id="bgImageDusk"
+        loading="lazy"
+        decoding="async"
+      />
 
-      <!-- Post-processing FX canvas -->
       <canvas class="fx-canvas" id="fxCanvas"></canvas>
 
-      <!-- Hotspot layer — positioned to match the image exactly -->
       <div class="hotspot-layer" id="hotspotLayer">
 
-        <!-- Turntable — plays music -->
         <button
           class="hotspot hotspot--turntable"
           id="turntableBtn"
@@ -59,10 +51,8 @@
           <span class="hotspot-icon">&#9654;</span>
         </button>
 
-        <!-- Music notes container -->
         <div class="music-notes" id="musicNotes" aria-hidden="true"></div>
 
-        <!-- Blue Vinyl Record — pre-order link -->
         <a
           href="https://peopleinorbit.bandcamp.com/album/viewpoint"
           target="_blank"
@@ -75,7 +65,6 @@
           <span class="hotspot-icon">&#128179;</span>
         </a>
 
-        <!-- Button above TV — plays video unmuted -->
         <button
           class="hotspot hotspot--tv-play"
           id="tvPlayBtn"
@@ -85,7 +74,6 @@
           <span class="hotspot-icon">&#9654; WATCH</span>
         </button>
 
-        <!-- TV Screen — click to return to logo -->
         <button
           class="hotspot hotspot--tv"
           id="tvBtn"
@@ -95,19 +83,14 @@
           <span class="hotspot-icon">&#9654;</span>
         </button>
 
-        <!-- TV video container -->
         <div class="tv-screen" id="tvScreen">
-          <!-- Logo (hidden by default) -->
           <div class="tv-logo" id="tvLogo" style="display: none">
             <img src="assets/logo.svg" alt="People in Orbit" />
           </div>
-          <!-- Static noise (shown by default) -->
           <div class="tv-static" id="tvStatic">
             <canvas id="staticCanvas"></canvas>
           </div>
-          <!-- YouTube player (created by API) -->
           <div id="ytPlayer" class="tv-video"></div>
-          <!-- Spotify iframe (only used in spotify mode) -->
           <iframe
             id="tvSpotify"
             class="tv-video"
@@ -115,21 +98,16 @@
             frameborder="0"
             allow="autoplay; encrypted-media"
           ></iframe>
-          <!-- Interaction blocker — prevents YouTube controls from showing -->
           <div class="tv-interact" id="tvInteract"></div>
-          <!-- Custom timeline bar -->
           <div class="tv-timeline" id="tvTimeline">
             <div class="tv-timeline-progress" id="tvTimelineProgress"></div>
           </div>
-          <!-- Volume indicator -->
           <div class="tv-volume" id="tvVolume">
             <div class="tv-volume-bar" id="tvVolumeBar"></div>
           </div>
-          <!-- TV effects overlay -->
           <div class="tv-glare"></div>
         </div>
 
-        <!-- Warm Lamp — toggle dark/light -->
         <button
           class="hotspot hotspot--lamp"
           id="lampBtn"
@@ -139,17 +117,12 @@
           <span class="hotspot-icon">&#128161;</span>
         </button>
 
-        <!-- TV power LED — on the bezel below the screen -->
         <div class="tv-led" id="tvLed"></div>
-
-        <!-- Hifi LED — on the Vincent preamp -->
         <div class="hifi-led" id="hifiLed"></div>
 
-        <!-- Speaker pulse overlays -->
         <div class="speaker speaker--left" id="speakerLeft"></div>
         <div class="speaker speaker--right" id="speakerRight"></div>
 
-        <!-- Tour dates — above TV -->
         <div class="wall-text wall-text--dates" id="tourDates">
           <h2 class="wall-text__heading">Tour 2026</h2>
           <ul class="wall-text__list">
@@ -161,7 +134,6 @@
           </ul>
         </div>
 
-        <!-- Band members — above vinyl -->
         <div class="wall-text wall-text--members" id="bandMembers">
           <p>Adam Sass – <span>Trumpet</span></p>
           <p>Edvin Ekman – <span>Tenor Saxophone, EFX</span></p>
@@ -170,19 +142,12 @@
           <p>Frank William Reis – <span>Drums</span></p>
         </div>
 
-        <!-- Right wall text -->
         <div class="wall-text wall-text--right" id="rightWallText">
           <h2 class="wall-text__heading">Close/Away</h2>
           <p>Out now on all platforms</p>
           <p>Booking: info@peopleinorbit.se</p>
         </div>
 
-        <!-- Easter egg: Book spine -->
-        <div class="hotspot hotspot--book" id="bookEgg" aria-label="Secret">
-          <span class="tooltip">You found a secret! 🪐</span>
-        </div>
-
-        <!-- IKEA-style info dots -->
         <div class="info-dot" id="infoBand">
           <div class="info-dot__circle"></div>
           <div class="info-dot__panel">
