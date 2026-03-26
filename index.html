@@ -35,14 +35,18 @@
     <div class="scene" id="scene">
       <img src="" class="portal-bg" id="portalBg" alt="" />
 
-      <img
-        src="assets/peopleinorbit.avif"
-        alt="People in Orbit"
-        class="bg-image"
-        id="bgImage"
-        fetchpriority="high"
-        decoding="async"
-      />
+      <picture>
+        <source srcset="assets/peopleinorbit.avif" type="image/avif" />
+        <source srcset="assets/peopleinorbit.webp" type="image/webp" />
+        <img
+          src="assets/peopleinorbit.jpg"
+          alt="People in Orbit"
+          class="bg-image"
+          id="bgImage"
+          fetchpriority="high"
+          decoding="async"
+        />
+      </picture>
 
       <canvas class="fx-canvas" id="fxCanvas"></canvas>
 
