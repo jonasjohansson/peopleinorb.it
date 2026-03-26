@@ -532,7 +532,8 @@ const navTargets = {
   contact: { get left() { return infoDots.contact.left; }, get top() { return infoDots.contact.top; }, dot: "infoContact" },
   vinyl:   { get left() { return infoDots.vinyl.left; },   get top() { return infoDots.vinyl.top; },   dot: "infoVinyl" },
   listen:  { get left() { return infoDots.listen.left; },  get top() { return infoDots.listen.top; },  dot: "infoListen" },
-  watch:   { get left() { return infoDots.watch.left; },   get top() { return infoDots.watch.top; },   dot: "infoWatch" },
+  watch:    { get left() { return infoDots.watch.left; },    get top() { return infoDots.watch.top; },    dot: "infoWatch" },
+  calendar: { get left() { return infoDots.calendar.left; }, get top() { return infoDots.calendar.top; }, dot: "infoCalendar" },
 };
 
 document.querySelectorAll(".info-dot").forEach((dot) => {
@@ -601,6 +602,63 @@ document.addEventListener("click", () => {
   document.querySelectorAll(".info-dot.active").forEach((d) => d.classList.remove("active"));
   document.querySelectorAll(".floating-nav button.active").forEach((b) => b.classList.remove("active"));
 });
+
+// --- Dagblock Calendar ---
+{
+  const WEEKDAYS = ["Söndag", "Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag"];
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const now = new Date();
+  document.getElementById("dagblockVenue").textContent = "";
+  document.getElementById("dagblockCity").textContent = "";
+  document.getElementById("dagblockDate").textContent = now.getDate();
+  document.getElementById("dagblockMonth").textContent = MONTHS[now.getMonth()];
+
+  const SHOWS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSKRkSWU4Yg1fgLpOqVd2TGIq8WKroPXFbxF-UuOvuExiC5a2gr_qtN8C0uwSW7f5_Z3ivAWi05IHpL/pub?output=csv";
+  const showsList = document.getElementById("showsList");
+
+  fetch(SHOWS_CSV)
+    .then(r => r.text())
+    .then(csv => {
+      const rows = csv.trim().split("\n").slice(1);
+      const today = now.toISOString().slice(0, 10);
+      const shows = rows
+        .map(row => {
+          const cols = row.split(",").map(c => c.replace(/^"|"$/g, "").trim());
+          return { venue: cols[0], city: cols[1], country: cols[2], date: cols[3] };
+        })
+        .filter(s => s.date >= today)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      if (shows.length === 0) {
+        showsList.innerHTML = '<p class="desc">No upcoming shows.</p>';
+        return;
+      }
+
+      showsList.innerHTML = shows.map(s => {
+        const d = new Date(s.date + "T12:00:00");
+        const dateStr = d.getDate() + " " + MONTHS[d.getMonth()];
+        return `<div class="show-item">
+          <div><span class="show-venue">${s.venue}</span><br><span class="show-city">${s.city}, ${s.country}</span></div>
+          <div class="show-date">${dateStr}</div>
+        </div>`;
+      }).join("");
+
+      // Show next gig on the dagblock
+      if (shows.length > 0) {
+        const next = shows[0];
+        const nd = new Date(next.date + "T12:00:00");
+        document.getElementById("dagblockVenue").textContent = next.venue;
+        document.getElementById("dagblockCity").textContent = next.city + ", " + next.country;
+        document.getElementById("dagblockDate").textContent = nd.getDate();
+        document.getElementById("dagblockMonth").textContent = MONTHS[nd.getMonth()];
+        const dagblockShows = document.getElementById("dagblockShows");
+        if (dagblockShows) dagblockShows.textContent = "";
+      }
+    })
+    .catch(() => {
+      showsList.innerHTML = '<p class="desc">Could not load shows.</p>';
+    });
+}
 
 // --- Navigation ---
 function navigateTo(target) {

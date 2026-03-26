@@ -31,6 +31,7 @@
       <button data-target="band">About</button>
       <button data-target="listen">Listen</button>
       <button data-target="watch">Watch</button>
+      <button data-target="calendar">Shows</button>
       <button data-target="contact">Contact</button>
     </nav>
     <div class="scene" id="scene">
@@ -221,6 +222,22 @@
           <div class="info-dot__panel">
             <h3>Signs of Presence</h3>
             <p class="desc">People in Orbit's electroacoustic interpretation of the graphic score <em>Signs of Presence</em> by electronic pioneer Leo Nilsson and artist Al Eklund. Originally premiered in 1978, now brought into the 21st century with modern visuals, improvisation, and contemporary electronics. Scenography and live visuals by Jonas Johansson.</p>
+          </div>
+        </div>
+
+        <div class="info-dot" id="infoCalendar">
+          <div class="dagblock" id="dagblock">
+            <div class="dagblock__venue" id="dagblockVenue"></div>
+            <div class="dagblock__city" id="dagblockCity"></div>
+            <div class="dagblock__date" id="dagblockDate"></div>
+            <div class="dagblock__month" id="dagblockMonth"></div>
+            <div class="dagblock__shows" id="dagblockShows"></div>
+          </div>
+          <div class="info-dot__circle"></div>
+          <div class="info-dot__panel">
+            <div class="shows-list" id="showsList">
+              <p class="desc">Loading…</p>
+            </div>
           </div>
         </div>
 
