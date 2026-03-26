@@ -13,7 +13,7 @@
   --panel-border: rgba(0, 0, 0, 0.12);
   --panel-padding: 0.8em 1em;
   --panel-radius: 0.25em;
-  --panel-font-size: 0.75em;
+  --panel-font-size: calc(0.75em + 2px);
   --panel-line-height: 1.5;
   --panel-max-width: 26em;
 }
@@ -55,6 +55,20 @@
   border-top: none;
   pointer-events: none;
   overflow: hidden;
+}
+
+.floating-nav .nav-logo {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  padding: var(--nav-padding);
+  flex-shrink: 0;
+}
+
+.floating-nav .nav-logo img {
+  height: 1.4em;
+  width: auto;
+  opacity: 0.8;
 }
 
 .floating-nav button {

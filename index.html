@@ -7,7 +7,7 @@
     <meta name="description" content="Modern jazz-rock and electronics from Malmö. Second album Viewpoint out April 10, 2026 on April Records." />
     <meta property="og:title" content="People in Orbit" />
     <meta property="og:description" content="Modern jazz-rock and electronics from Malmö. Second album Viewpoint out April 10, 2026 on April Records." />
-    <meta property="og:image" content="https://peopleinorbit.se/assets/peopleinorbit-og.jpg" />
+    <meta property="og:image" content="https://peopleinorbit.se/assets/jpg/peopleinorbit-og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:url" content="https://peopleinorbit.se" />
@@ -17,7 +17,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="People in Orbit" />
     <meta name="twitter:description" content="Modern jazz-rock and electronics from Malmö. Second album Viewpoint out April 10, 2026." />
-    <meta name="twitter:image" content="https://peopleinorbit.se/assets/peopleinorbit-og.jpg" />
+    <meta name="twitter:image" content="https://peopleinorbit.se/assets/jpg/peopleinorbit-og.jpg" />
     <link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
     <link rel="shortcut icon" href="favicon/favicon.ico" />
@@ -27,7 +27,8 @@
   </head>
   <body class="loading">
     <nav class="floating-nav" id="floatingNav">
-      <button data-target="band">People in Orbit</button>
+      <a href="/" class="nav-logo" aria-label="Home"><img src="assets/svg/peopleinorbit-logo.svg" alt="People in Orbit" /></a>
+      <button data-target="band">About</button>
       <button data-target="listen">Listen</button>
       <button data-target="watch">Watch</button>
       <button data-target="contact">Contact</button>
@@ -36,10 +37,10 @@
       <img src="" class="portal-bg" id="portalBg" alt="" />
 
       <picture>
-        <source srcset="assets/peopleinorbit.avif" type="image/avif" />
-        <source srcset="assets/peopleinorbit.webp" type="image/webp" />
+        <source srcset="assets/avif/peopleinorbit.avif" type="image/avif" />
+        <source srcset="assets/webp/peopleinorbit.webp" type="image/webp" />
         <img
-          src="assets/peopleinorbit.jpg"
+          src="assets/jpg/peopleinorbit.jpg"
           alt="People in Orbit"
           class="bg-image"
           id="bgImage"
@@ -83,7 +84,7 @@
 
         <div class="tv-screen" id="tvScreen">
           <div class="tv-logo" id="tvLogo" style="display: none">
-            <img src="assets/logo.svg" alt="People in Orbit" />
+            <img src="assets/svg/logo.svg" alt="People in Orbit" />
           </div>
           <div class="tv-static" id="tvStatic">
             <canvas id="staticCanvas"></canvas>

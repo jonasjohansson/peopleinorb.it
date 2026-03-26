@@ -107,7 +107,7 @@ function syncLayout() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   if (renderedW > vw) scene.scrollLeft = (renderedW - vw) / 2;
-  if (renderedH > vh) scene.scrollTop = renderedH - vh;
+  if (renderedH > vh) scene.scrollTop = (renderedH - vh) / 2;
 }
 
 syncLayout();
