@@ -826,7 +826,7 @@ body {
 
 /* === Dagblock Calendar === */
 .dagblock {
-  width: 5em;
+  width: 4.5em;
   height: 5.2em;
   background: #ede5db;
   border-radius: 0;
@@ -912,6 +912,10 @@ body {
   letter-spacing: 0.02em;
   text-align: center;
   white-space: nowrap;
+}
+
+#infoCalendar {
+  z-index: 10;
 }
 
 #infoCalendar .info-dot__circle {

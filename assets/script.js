@@ -635,7 +635,7 @@ document.addEventListener("click", () => {
         const d = new Date(s.date + "T12:00:00");
         const dateStr = d.getDate() + " " + MONTHS[d.getMonth()];
         return `<div class="show-item">
-          <div><span class="show-venue">${s.venue}</span><br><span class="show-city">${s.city}, ${s.country}</span></div>
+          <div><span class="show-venue">${s.venue}</span><br><span class="show-city">${s.city}</span></div>
           <div class="show-date">${dateStr}</div>
         </div>`;
       }).join("");
@@ -645,7 +645,7 @@ document.addEventListener("click", () => {
         const next = shows[0];
         const nd = new Date(next.date + "T12:00:00");
         document.getElementById("dagblockVenue").textContent = next.venue;
-        document.getElementById("dagblockCity").textContent = next.city + ", " + next.country;
+        document.getElementById("dagblockCity").textContent = next.city;
         document.getElementById("dagblockDate").textContent = nd.getDate();
         document.getElementById("dagblockMonth").textContent = MONTHS[nd.getMonth()];
         dagblock.classList.add("loaded");
