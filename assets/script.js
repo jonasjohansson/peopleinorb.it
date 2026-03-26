@@ -18,23 +18,27 @@ try {
 // --- Load site data from Google Sheets ---
 const SITE_DATA_CSV = "https://docs.google.com/spreadsheets/d/1t_MW0nj9XppnHZIj_YpbAEAPGzIZh6C0H8ZbfR9VeUo/gviz/tq?tqx=out:csv&gid=74332928";
 
-function parseCSVRow(row) {
-  const cols = [];
-  let cur = "", inQuotes = false;
-  for (let i = 0; i < row.length; i++) {
-    const ch = row[i];
+function parseCSV(text) {
+  const rows = [];
+  let cur = "", inQuotes = false, cols = [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (inQuotes) {
-      if (ch === '"' && row[i + 1] === '"') { cur += '"'; i++; }
+      if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; }
       else if (ch === '"') inQuotes = false;
       else cur += ch;
     } else {
       if (ch === '"') inQuotes = true;
       else if (ch === ',') { cols.push(cur); cur = ""; }
-      else cur += ch;
+      else if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
+        cols.push(cur); cur = "";
+        rows.push(cols); cols = [];
+        if (ch === '\r') i++;
+      } else cur += ch;
     }
   }
-  cols.push(cur);
-  return cols;
+  if (cur || cols.length) { cols.push(cur); rows.push(cols); }
+  return rows;
 }
 
 function buildPanelHTML(row, headers) {
@@ -88,10 +92,10 @@ function buildPanelHTML(row, headers) {
 try {
   const csvResp = await fetch(SITE_DATA_CSV);
   const csvText = await csvResp.text();
-  const lines = csvText.trim().split("\n");
-  const headers = parseCSVRow(lines[0]);
-  for (let i = 1; i < lines.length; i++) {
-    const row = parseCSVRow(lines[i]);
+  const rows = parseCSV(csvText.trim());
+  const headers = rows[0];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
     const elId = row[headers.indexOf("elementId")];
     if (!elId) continue;
     const panel = document.querySelector(`#${elId} .info-dot__panel`);
