@@ -30,7 +30,7 @@
   },
   "leds": {
     "tv":   { "left": 28.8, "top": 92.2, "size": 5.0 },
-    "hifi": { "left": 57.45, "top": 83.55, "size": 5.5 }
+    "hifi": { "left": 57.45, "top": 83.55, "size": 8.0 }
   },
   "infoDots": {
     "band":      { "left": 53.2, "top": 38.4 },
