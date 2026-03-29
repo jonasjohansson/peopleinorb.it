@@ -1,3 +1,5 @@
 swimmer.glb
 assets/swimmer-draco.glb
 experiments/
+.claude/
+.DS_Store
